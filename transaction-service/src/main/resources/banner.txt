@@ -1,0 +1,13 @@
+ _____                               _   _               ____                  _
+|_   _| __ __ _ _ __  ___  __ _  ___| |_(_) ___  _ __   / ___|  ___ _ ____   _(_) ___ ___
+  | || '__/ _` | '_ \/ __|/ _` |/ __| __| |/ _ \| '_ \  \___ \ / _ \ '__\ \ / / |/ __/ _ \
+  | || | | (_| | | | \__ \ (_| | (__| |_| | (_) | | | |  ___) |  __/ |   \ V /| | (_|  __/
+  |_||_|  \__,_|_| |_|___/\__,_|\___|\__|_|\___/|_| |_| |____/ \___|_|    \_/ |_|\___\___|
+
+${AnsiColor.CYAN}:: Carrefour Bank :: Transaction Service ${AnsiColor.DEFAULT}:: Spring Boot ${spring-boot.version}
+${AnsiColor.CYAN}:: Environment: ${AnsiColor.GREEN}${spring.profiles.active:default}${AnsiColor.DEFAULT}
+${AnsiColor.CYAN}:: App Version: ${AnsiColor.GREEN}${info.app.version:1.0.0-SNAPSHOT}${AnsiColor.DEFAULT}
+${AnsiColor.CYAN}:: Java Version: ${AnsiColor.GREEN}${java.version}${AnsiColor.DEFAULT}
+${AnsiColor.CYAN}:: PID: ${AnsiColor.GREEN}${PID}${AnsiColor.DEFAULT}
+${AnsiColor.CYAN}:: Started at: ${AnsiColor.GREEN}${application.formatted-date}${AnsiColor.DEFAULT}
+::

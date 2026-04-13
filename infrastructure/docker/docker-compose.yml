@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  transaction-db:
+    image: postgres:15
+    container_name: transaction-db
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: transaction_user
+      POSTGRES_PASSWORD: transaction_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - transaction-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transaction_user -d transaction_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dailybalance-db:
+    image: postgres:15
+    container_name: dailybalance-db
+    environment:
+      POSTGRES_DB: dailybalance_db
+      POSTGRES_USER: dailybalance_user
+      POSTGRES_PASSWORD: dailybalance_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - dailybalance-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dailybalance_user -d dailybalance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    container_name: pubsub-emulator
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+
+volumes:
+  transaction-data:
+  dailybalance-data:

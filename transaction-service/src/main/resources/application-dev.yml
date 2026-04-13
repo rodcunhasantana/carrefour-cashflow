@@ -1,0 +1,27 @@
+# Configurações específicas para o ambiente de desenvolvimento
+logging:
+  level:
+    com.carrefourbank: DEBUG
+    org.springframework.jdbc.core: DEBUG
+    org.springframework.web: DEBUG
+
+# Configurações de banco de dados para desenvolvimento
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dailybalance_db
+    username: dailybalance_user
+    password: dailybalance_password
+
+  # Pub/Sub para ambiente local
+  cloud:
+    gcp:
+      pubsub:
+        emulator-host: localhost:8085
+        project-id: local-project
+
+# Configurações de observabilidade para desenvolvimento
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expõe todos os endpoints para desenvolvimento
