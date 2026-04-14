@@ -1,4 +1,3 @@
--- Salvar como schema.sql
 CREATE TABLE IF NOT EXISTS transactions (
     id VARCHAR(36) PRIMARY KEY,
     type VARCHAR(10) NOT NULL,
@@ -7,7 +6,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     date DATE NOT NULL,
     description VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    status VARCHAR(20) NOT NULL
+    status VARCHAR(20) NOT NULL,
+    is_reversal BOOLEAN DEFAULT FALSE,
+    original_transaction_id VARCHAR(36)
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date);

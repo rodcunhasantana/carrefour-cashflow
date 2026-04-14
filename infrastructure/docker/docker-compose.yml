@@ -1,8 +1,10 @@
 version: '3.8'
 
 services:
+
+  # ─── Banco de dados do transaction-service ──────────────────────────────────
   transaction-db:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: transaction-db
     environment:
       POSTGRES_DB: transaction_db
@@ -18,8 +20,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── Banco de dados do dailybalance-service ──────────────────────────────────
   dailybalance-db:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: dailybalance-db
     environment:
       POSTGRES_DB: dailybalance_db
@@ -35,12 +38,66 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── Google Cloud Pub/Sub Emulator ───────────────────────────────────────────
+  # Imagem oficial leve (apenas o emulador, sem o SDK completo)
   pubsub-emulator:
-    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     container_name: pubsub-emulator
-    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 --project=local-project
     ports:
       - "8085:8085"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8085 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ─── Criação do tópico no emulador ───────────────────────────────────────────
+  # Roda uma vez e sai após criar o tópico transaction-events
+  pubsub-setup:
+    image: curlimages/curl:latest
+    container_name: pubsub-setup
+    depends_on:
+      pubsub-emulator:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "Criando tópico transaction-events..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/transaction-events"
+        echo "Tópico criado."
+
+  # ─── Transaction Service ─────────────────────────────────────────────────────
+  transaction-service:
+    build:
+      # Contexto é a raiz do projeto (precisa do pom.xml pai e do módulo common)
+      context: ../../
+      dockerfile: transaction-service/Dockerfile
+    container_name: transaction-service
+    depends_on:
+      transaction-db:
+        condition: service_healthy
+      pubsub-setup:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: transaction-db
+      DB_PORT: 5432
+      DB_USER: transaction_user
+      DB_PASSWORD: transaction_password
+      GCP_PROJECT_ID: local-project
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/transaction-service/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   transaction-data:

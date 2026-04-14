@@ -5,23 +5,21 @@ logging:
     org.springframework.jdbc.core: DEBUG
     org.springframework.web: DEBUG
 
-# Configurações de banco de dados para desenvolvimento
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/dailybalance_db
-    username: dailybalance_user
-    password: dailybalance_password
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/transaction_db
+    username: ${DB_USER:transaction_user}
+    password: ${DB_PASSWORD:transaction_password}
 
-  # Pub/Sub para ambiente local
   cloud:
     gcp:
+      project-id: ${GCP_PROJECT_ID:local-project}
       pubsub:
-        emulator-host: localhost:8085
-        project-id: local-project
+        # local: localhost:8085  |  docker: pubsub-emulator:8085
+        emulator-host: ${PUBSUB_EMULATOR_HOST:localhost:8085}
 
-# Configurações de observabilidade para desenvolvimento
 management:
   endpoints:
     web:
       exposure:
-        include: "*"  # Expõe todos os endpoints para desenvolvimento
+        include: "*"

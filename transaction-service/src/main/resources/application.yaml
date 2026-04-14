@@ -8,20 +8,7 @@ spring:
   application:
     name: transaction-service
   profiles:
-    active: dev  # Define um perfil ativo
-
-info:
-  app:
-    name: Transaction Service
-    description: Serviço de controle de transações financeiras
-    version: ${project.version:1.0.0-SNAPSHOT}
-    encoding: UTF-8
-    java:
-      version: ${java.version}
-
-# Definindo versão da aplicação que será mostrada no banner
-application:
-  formatted-version: "@project.version@"
+    active: dev
 
   datasource:
     url: jdbc:postgresql://localhost:5432/transaction_db
@@ -35,19 +22,32 @@ application:
       idle-timeout: 300000
       max-lifetime: 900000
 
-  # Inicialização do esquema SQL
   sql:
     init:
       mode: always
       schema-locations: classpath:schema.sql
 
-  # Desabilitar JPA completamente
+  cloud:
+    gcp:
+      project-id: ${GCP_PROJECT_ID:local-project}
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
 
-# Configurações de observabilidade
+info:
+  app:
+    name: Transaction Service
+    description: Serviço de controle de transações financeiras
+    version: ${project.version:1.0.0-SNAPSHOT}
+    encoding: UTF-8
+    java:
+      version: ${java.version}
+
+application:
+  formatted-version: "@project.version@"
+
 management:
   endpoints:
     web:
@@ -65,7 +65,6 @@ management:
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
 
-# Configuração do Circuit Breaker com Resilience4j
 resilience4j:
   circuitbreaker:
     instances:
@@ -84,13 +83,12 @@ resilience4j:
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 2
 
-# Configurações de Logging
 logging:
   level:
     root: WARN
     com.carrefourbank: INFO
     org.springframework.web: INFO
-    org.springframework.jdbc.core: INFO  # Adicionado para logs de JDBC
+    org.springframework.jdbc.core: INFO
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr([${spring.application.name},%X{traceId:-},%X{spanId:-},%X{transactionId:-}]){yellow} %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [${spring.application.name},%X{traceId:-},%X{spanId:-},%X{transactionId:-}] ${PID:- } --- [%t] %-40.40logger{39} : %m%n%wEx"
