@@ -13,9 +13,13 @@ Este sistema é composto por dois microserviços principais:
 
 - Java 21
 - Spring Boot 3.x
-- PostgreSQL
-- Google Cloud Platform (GCP)
-- Docker
+- Google Cloud Run (hospedagem dos microserviços)
+- Google Cloud SQL — PostgreSQL (banco de dados)
+- Google Cloud Pub/Sub (mensageria assíncrona)
+- Google Cloud Storage (relatórios e exportações)
+- Google Cloud Secret Manager (credenciais)
+- Google Cloud Identity Platform (autenticação)
+- Docker (desenvolvimento local)
 
 ## Estrutura do Projeto
 
@@ -30,23 +34,26 @@ Este sistema é composto por dois microserviços principais:
 ### Pré-requisitos
 
 - Java 21+
-- Docker Desktop para Windows
+- Docker Desktop
 - Maven
+- Google Cloud CLI (`gcloud`)
 
 ### Executando localmente
+
+O ambiente local utiliza emuladores GCP para simular os serviços de nuvem.
 
 ```bash
 # Clone o repositório
 git clone https://github.com/seu-usuario/carrefour-cashflow.git
 cd carrefour-cashflow
 
-# Iniciar dependências (PostgreSQL, etc.)
+# Iniciar dependências locais (PostgreSQL + emulador Pub/Sub)
 docker-compose -f infrastructure/docker/docker-compose.yml up -d
 
-# Compilar e executar os serviços
+# Compilar e executar os serviços (perfil dev)
 cd transaction-service
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Em outro terminal
 cd dailybalance-service
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev

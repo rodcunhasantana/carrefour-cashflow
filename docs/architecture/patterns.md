@@ -1,182 +1,262 @@
-# Padrões Arquiteturais - Carrefour Cashflow
+# Padrões Arquiteturais - Carrefour Cashflow System
 
-Este documento descreve os principais padrões arquiteturais aplicados no sistema Carrefour Cashflow, explicando como cada padrão é implementado e os benefícios obtidos.
+## Visão Geral
 
-## Clean Architecture / Arquitetura Hexagonal
+O Carrefour Cashflow System implementa padrões arquiteturais robustos para garantir clareza, manutenibilidade e escalabilidade do código. Este documento apresenta os principais padrões aplicados, com foco especial na Arquitetura Hexagonal como o fundamento arquitetural do sistema.
 
-### Descrição
-A Clean Architecture (também conhecida como Arquitetura Hexagonal ou Ports and Adapters) organiza o código em camadas concêntricas, com regras de dependência apontando para dentro. As camadas externas podem depender das internas, mas não o contrário.
+---
 
-### Implementação no Carrefour Cashflow
-Cada serviço implementa as seguintes camadas:
+## Arquitetura Hexagonal (Ports and Adapters)
 
-1. **Domain Layer (Core)**: Entidades, regras de negócio, interfaces de repositórios
-    - `com.carrefourbank.transaction.domain`
-    - `com.carrefourbank.dailybalance.domain`
+A arquitetura principal do sistema é a Arquitetura Hexagonal, também conhecida como Ports and Adapters, proposta por Alistair Cockburn. Esta abordagem organiza o software em camadas concêntricas, protegendo a lógica de negócio de detalhes externos.
 
-2. **Application Layer**: Casos de uso, orquestração de fluxos
-    - `com.carrefourbank.transaction.application`
-    - `com.carrefourbank.dailybalance.application`
+### Princípios Fundamentais
 
-3. **Infrastructure Layer**: Implementações técnicas (APIs, banco de dados, mensageria)
-    - `com.carrefourbank.transaction.infrastructure`
-    - `com.carrefourbank.dailybalance.infrastructure`
+**Independência de Domínio:**
+- O núcleo da aplicação contém regras de negócio puras
+- O domínio não tem conhecimento de infraestrutura, frameworks ou interfaces externas
 
-### Benefícios
-- **Testabilidade**: O domínio e a aplicação podem ser testados sem infraestrutura
-- **Flexibilidade**: Adaptadores podem ser substituídos sem afetar o core
-- **Clareza**: Separação clara de responsabilidades
-- **Proteção do domínio**: Regras de negócio isoladas de detalhes técnicos
+**Portas e Adaptadores:**
+- Portas: Interfaces que definem como o domínio se comunica com o mundo externo
+- Adaptadores: Implementações concretas das portas para tecnologias específicas
 
-## Domain-Driven Design (DDD)
+**Inversão de Dependência:**
+- Dependências sempre apontam para o centro (domínio)
+- Módulos externos dependem do domínio, não o contrário
 
-### Descrição
-DDD é uma abordagem de desenvolvimento que conecta a implementação a um modelo evolutivo, priorizando o domínio do problema e usando uma linguagem ubíqua.
+### Componentes Principais
 
-### Implementação no Carrefour Cashflow
-1. **Modelo Rico de Domínio**:
-    - Entidades encapsulam comportamento (ex: `Transaction.validate()`)
-    - Value Objects para conceitos sem identidade (ex: `Money`)
-    - Serviços de Domínio para operações que não pertencem naturalmente a uma entidade
+**Domínio (Núcleo):**
+- Contém a lógica de negócio pura
+- Define modelos, entidades e regras sem dependências externas
 
-2. **Bounded Contexts**:
-    - `Transaction Service`: Contexto de lançamentos financeiros
-    - `Daily Balance Service`: Contexto de saldos consolidados
+**Portas:**
+- Portas Primárias (Entrada): Definem serviços que o domínio oferece ao mundo externo
+- Portas Secundárias (Saída): Definem serviços que o domínio necessita do mundo externo
 
-3. **Linguagem Ubíqua**:
-    - Termos financeiros consistentes em código e documentação
-    - Ex: Transaction, Credit, Debit, Balance, Reversal
+**Adaptadores:**
+- Adaptadores Primários (Driver): Conduzem a aplicação (Controllers REST, Consumers de Eventos)
+- Adaptadores Secundários (Driven): São conduzidos pela aplicação (Repositórios, Gateways)
 
-### Benefícios
-- **Alinhamento com o negócio**: Código reflete terminologia e regras do domínio
-- **Expressividade**: Intenções claras no código
-- **Evolução suave**: Mudanças de negócio mapeiam diretamente para o código
-- **Compartimentalização**: Contextos bem definidos evitam vazamento de conceitos
+### Implementação no Projeto
 
-## Event-Driven Architecture
+A estrutura de pacotes do projeto reflete diretamente a Arquitetura Hexagonal:
 
-### Descrição
-Arquitetura onde a comunicação entre componentes ocorre primariamente através de eventos, permitindo desacoplamento e comunicação assíncrona.
+```
+com.carrefourbank.transaction
+├── domain                     # Núcleo do domínio
+│   ├── model                  # Entidades e objetos de valor
+│   │   ├── Transaction.java
+│   │   └── TransactionStatus.java
+│   └── port                   # Portas secundárias (saída)
+│       ├── TransactionRepository.java
+│       └── TransactionEventPublisher.java
+├── application                # Casos de uso / Regras de aplicação
+│   ├── dto                    # DTOs para transferência de dados
+│   ├── port                   # Portas primárias (entrada)
+│   │   └── TransactionService.java
+│   └── service                # Implementação dos casos de uso
+│       └── TransactionServiceImpl.java
+└── infrastructure             # Implementações externas
+    ├── adapter                
+    │   ├── persistence        # Adaptadores secundários (repositórios)
+    │   │   └── JdbcTransactionRepository.java
+    │   └── pubsub             # Adaptadores secundários (mensageria)
+    │       └── PubSubTransactionEventPublisher.java
+    └── web                    # Adaptadores primários (controllers)
+        └── TransactionController.java
+```
 
-### Implementação no Carrefour Cashflow
-1. **Eventos de Domínio**:
-    - `TransactionCreatedEvent`
-    - `TransactionReversedEvent`
+### Exemplo Prático
 
-2. **Publicação e Consumo**:
-    - `PubSubTransactionEventPublisher`: Publica eventos no Google Cloud Pub/Sub
-    - `TransactionEventConsumer`: Consome eventos para atualizar saldos
+**Porta (Interface)**
 
-3. **Tópicos e Assinaturas**:
-    - Tópico `transaction-events` para todos os eventos relacionados a transações
-    - Assinatura do Daily Balance Service para processar eventos
+```java
+// Porta secundária - Define como o domínio interage com armazenamento
+public interface TransactionRepository {
+    Transaction save(Transaction transaction);
+    Optional<Transaction> findById(UUID id);
+    List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
+}
+```
 
-### Benefícios
-- **Desacoplamento temporal**: Serviços não precisam estar disponíveis simultaneamente
-- **Escalabilidade**: Picos de carga são absorvidos pela infraestrutura de mensageria
-- **Resiliência**: Falhas temporárias não comprometem a integridade do sistema
-- **Extensibilidade**: Novos consumidores podem ser adicionados sem afetar produtores
+**Adaptador (Implementação)**
 
-## Repository Pattern
+```java
+// Adaptador secundário - Implementação concreta usando JDBC
+@Repository
+public class JdbcTransactionRepository implements TransactionRepository {
+    private final JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    public JdbcTransactionRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+    
+    @Override
+    public Transaction save(Transaction transaction) {
+        // Implementação usando JDBC
+    }
+    
+    // Outras implementações...
+}
+```
 
-### Descrição
-Encapsula a lógica de persistência e recuperação de objetos, proporcionando uma interface orientada a coleções.
+---
 
-### Implementação no Carrefour Cashflow
-1. **Interfaces de Repositório**:
-    - `TransactionRepository`: Interface no pacote de domínio
-    - `DailyBalanceRepository`: Interface no pacote de domínio
+## Padrões de Design Complementares
 
-2. **Implementações**:
-    - `JdbcTransactionRepository`: Implementação JDBC do repositório
-    - `JdbcDailyBalanceRepository`: Implementação JDBC do repositório
+Além da Arquitetura Hexagonal, o projeto utiliza outros padrões de design que se alinham bem com essa abordagem:
 
-### Benefícios
-- **Abstração de Persistência**: Domínio desacoplado de detalhes de persistência
-- **Testabilidade**: Facilidade para mockar repositórios em testes
-- **Encapsulamento de Queries**: Complexidade de consultas isolada em um lugar
-- **Substituição Transparente**: Possibilidade de mudar implementações sem afetar clientes
+### Domain-Driven Design (DDD)
 
-## Command Query Responsibility Segregation (CQRS)
+O DDD é aplicado para modelar o domínio complexo do sistema financeiro, com foco em:
 
-### Descrição
-Padrão que separa operações de leitura (Queries) das operações de escrita (Commands), permitindo otimizações específicas para cada tipo.
+- **Entidades**: Objetos com identidade e ciclo de vida (ex: `Transaction`)
+- **Value Objects**: Objetos imutáveis sem identidade (ex: `Money`)
+- **Agregados**: Grupos de objetos tratados como uma unidade (ex: `Transaction` e seus detalhes)
+- **Eventos de Domínio**: Notificações sobre fatos relevantes no domínio (ex: `TransactionCreatedEvent`)
 
-### Implementação no Carrefour Cashflow
-Implementamos uma versão simplificada do CQRS:
+```java
+// Exemplo de Value Object
+public class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
+    
+    private Money(BigDecimal amount, Currency currency) {
+        this.amount = amount.setScale(2, RoundingMode.HALF_UP);
+        this.currency = currency;
+    }
+    
+    public static Money ofBRL(BigDecimal amount) {
+        return new Money(amount, Currency.BRL);
+    }
+    
+    public Money negate() {
+        return new Money(amount.negate(), currency);
+    }
+    
+    // Métodos imutáveis...
+}
+```
 
-1. **Commands**:
-    - `TransactionCreateCommand`: Para criar transações
-    - `TransactionReversalCommand`: Para estornar transações
+### Padrão Repository
 
-2. **Queries**:
-    - Métodos de consulta específicos nos repositórios
-    - DTOs de resposta otimizados para leitura
+Implementado para abstrair a persistência de dados, permitindo que o domínio trabalhe com coleções de objetos sem conhecer os detalhes de armazenamento:
 
-### Benefícios
-- **Separação de Responsabilidades**: Código de leitura e escrita com propósitos claros
-- **Performance**: Possibilidade de otimizar leituras e escritas independentemente
-- **Escalabilidade**: Base para separação de modelos de leitura e escrita se necessário no futuro
+```java
+// Interface define operações sem detalhes de implementação
+public interface DailyBalanceRepository {
+    DailyBalance findByDate(LocalDate date);
+    DailyBalance save(DailyBalance dailyBalance);
+    List<DailyBalance> findByDateBetween(LocalDate startDate, LocalDate endDate);
+}
 
-## Circuit Breaker
+// Implementação concreta
+@Repository
+public class JdbcDailyBalanceRepository implements DailyBalanceRepository {
+    // Implementação com JDBC
+}
+```
 
-### Descrição
-Padrão que monitora falhas em chamadas a serviços externos e evita cascata de falhas interrompendo temporariamente chamadas quando um limiar é atingido.
+### Command Query Responsibility Segregation (CQRS)
 
-### Implementação no Carrefour Cashflow
-1. **Resilience4j**:
-    - Configurado para chamadas externas (Pub/Sub)
-    - Políticas de retry, fallback e circuit breaker configuradas
+Aplicado de forma leve para separar operações de leitura e escrita:
 
-2. **Configuração**:
-    - Limiares de falha configuráveis
-    - Estados de half-open para recuperação gradual
+- **Commands**: Representam intenções de modificar o estado (ex: `TransactionCreateCommand`)
+- **Queries**: Solicitações de dados sem modificar o estado
+- **DTOs específicos**: Objetos distintos para leitura e escrita
 
-### Benefícios
-- **Falha Rápida**: Evita timeouts longos quando serviço está indisponível
-- **Auto-recuperação**: Tenta restabelecer conexão automaticamente após período de espera
-- **Proteção de Recursos**: Evita sobrecarga de serviços já comprometidos
-- **Monitorabilidade**: Métricas sobre estado de circuit breakers
+```java
+// Command para criar transação
+public record TransactionCreateCommand(
+    TransactionType type,
+    BigDecimal amount,
+    LocalDate date,
+    String description
+) {}
 
-## Observer Pattern (via Events)
+// DTO para retorno de consulta
+public record TransactionDTO(
+    UUID id,
+    TransactionType type,
+    BigDecimal amount,
+    Currency currency,
+    LocalDate date,
+    String description,
+    LocalDateTime createdAt,
+    TransactionStatus status
+) {}
+```
 
-### Descrição
-Padrão onde objetos (observers) se registram para serem notificados quando ocorrem mudanças em outro objeto (subject).
+### Event-Driven Architecture
 
-### Implementação no Carrefour Cashflow
-Implementado via eventos e assinatura:
+Utilizada para comunicação assíncrona entre os microsserviços:
 
-1. **Subjects**:
-    - Transaction Service publica eventos quando transações são criadas/estornadas
+- **Eventos de Domínio**: Representam fatos ocorridos no domínio
+- **Publicador de Eventos**: Adaptador para publicação de eventos
+- **Consumidor de Eventos**: Adaptador para consumo e processamento de eventos
 
-2. **Observers**:
-    - Daily Balance Service se inscreve para receber eventos de transação
+```java
+// Porta para publicação de eventos
+public interface TransactionEventPublisher {
+    void publishTransactionCreatedEvent(Transaction transaction);
+    void publishTransactionReversedEvent(Transaction originalTransaction, Transaction reversalTransaction);
+}
 
-### Benefícios
-- **Desacoplamento**: O Transaction Service não conhece seus observers
-- **Extensibilidade**: Novos observers podem ser adicionados sem modificar o subject
-- **Separação de Responsabilidades**: Cada observer foca em sua própria lógica
+// Adaptador para Google Cloud Pub/Sub
+@Service
+public class PubSubTransactionEventPublisher implements TransactionEventPublisher {
+    private final PubSubTemplate pubSubTemplate;
+    
+    @Override
+    public void publishTransactionCreatedEvent(Transaction transaction) {
+        // Construir e publicar evento
+    }
+}
+```
 
-## DTO (Data Transfer Object)
+### Injeção de Dependência
 
-### Descrição
-Objetos simples usados para transferir dados entre camadas, especialmente na comunicação com clientes.
+Utilizada para fornecer implementações concretas das portas ao núcleo da aplicação:
 
-### Implementação no Carrefour Cashflow
-1. **DTOs de API**:
-    - `TransactionDTO`: Para transferir dados de transações pela API
-    - `DailyBalanceDTO`: Para transferir dados de saldos pela API
+```java
+@Service
+@Transactional
+public class TransactionServiceImpl implements TransactionService {
+    private final TransactionRepository transactionRepository;
+    private final TransactionEventPublisher eventPublisher;
+    
+    // Injeção via construtor
+    public TransactionServiceImpl(
+            TransactionRepository transactionRepository,
+            TransactionEventPublisher eventPublisher) {
+        this.transactionRepository = transactionRepository;
+        this.eventPublisher = eventPublisher;
+    }
+    
+    // Implementação dos métodos...
+}
+```
 
-2. **Mapeadores**:
-    - `TransactionMapper`: Converte entre entidades e DTOs
-    - `DailyBalanceMapper`: Converte entre entidades e DTOs
+---
 
-### Benefícios
-- **Desacoplamento**: API desacoplada de mudanças no modelo de domínio
-- **Controle de Exposição**: Apenas dados necessários são expostos
-- **Validação Específica**: Regras de validação para entrada de API separadas de regras de domínio
-- **Evolução Independente**: API pode evoluir sem impactar o domínio e vice-versa
+## Benefícios da Arquitetura Adotada
 
-## Conclusion
+- **Testabilidade**: Facilidade para testar o domínio isoladamente com mocks das portas
+- **Flexibilidade**: Adaptadores podem ser substituídos sem impacto no domínio
+- **Clareza**: Separação nítida entre regras de negócio e detalhes técnicos
+- **Evolução Independente**: Componentes podem evoluir em ritmos diferentes
+- **Resiliência**: Falhas em componentes externos são isoladas e gerenciadas
 
-Estes padrões arquiteturais trabalham em conjunto para criar um sistema modular, testável, escalável e orientado ao domínio. A aplicação consistente destes padrões em todos os serviços proporciona uniformidade e previsibilidade, facilitando a manutenção e evolução do sistema.
+---
+
+## Desafios e Soluções
+
+| Desafio                                           | Solução Adotada                                                        |
+|---------------------------------------------------|------------------------------------------------------------------------|
+| Mapeamento entre objetos de domínio e DTOs        | Uso de mappers dedicados com conversão explícita                       |
+| Tratamento de erros em diferentes camadas         | Exceções de domínio traduzidas para respostas HTTP apropriadas         |
+| Transações distribuídas                           | Consistência eventual via eventos de domínio                           |
+| Testes de componentes isolados                    | Mocks e stubs para portas secundárias                                  |
+| Validação de entrada                              | Validação em duas camadas: básica no controlador, de negócio no domínio|
