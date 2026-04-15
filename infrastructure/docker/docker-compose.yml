@@ -72,6 +72,12 @@ services:
         curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/dailybalance-transaction-subscription" \
           -H "Content-Type: application/json" \
           -d '{"topic":"projects/local-project/topics/transaction-events"}'
+        echo "Criando tópico period-events..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/period-events"
+        echo "Criando subscription transaction-period-subscription..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/transaction-period-subscription" \
+          -H "Content-Type: application/json" \
+          -d '{"topic":"projects/local-project/topics/period-events"}'
         echo "Setup concluído."
 
   # ─── Transaction Service ─────────────────────────────────────────────────────

@@ -59,7 +59,7 @@ public class TransactionEventConsumer {
                 TransactionCreatedEventData data = objectMapper.readValue(dataJson, TransactionCreatedEventData.class);
                 Money amount = Money.of(data.amount(), Currency.valueOf(data.currency()));
                 TransactionType type = TransactionType.valueOf(data.type());
-                dailyBalanceService.applyTransaction(data.date(), amount, type);
+                dailyBalanceService.applyTransaction(envelope.eventId(), data.date(), amount, type);
             }
             case "transaction-reversed" -> {
                 TransactionReversedEventData data = objectMapper.readValue(dataJson, TransactionReversedEventData.class);
@@ -70,7 +70,7 @@ public class TransactionEventConsumer {
                 }
                 Money money = Money.of(amount, Currency.valueOf(data.currency()));
                 TransactionType type = TransactionType.valueOf(data.type());
-                dailyBalanceService.applyTransaction(data.date(), money, type);
+                dailyBalanceService.applyTransaction(envelope.eventId(), data.date(), money, type);
             }
             default -> log.warn("Unknown event type: {}, eventId={}", eventType, envelope.eventId());
         }

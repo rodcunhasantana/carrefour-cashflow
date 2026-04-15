@@ -14,3 +14,8 @@ CREATE TABLE IF NOT EXISTS daily_balances (
 
 CREATE INDEX IF NOT EXISTS idx_dailybalance_date ON daily_balances (date);
 CREATE INDEX IF NOT EXISTS idx_dailybalance_status ON daily_balances (status);
+
+CREATE TABLE IF NOT EXISTS processed_events (
+    event_id    VARCHAR(36) PRIMARY KEY,
+    processed_at TIMESTAMP NOT NULL
+);

@@ -15,3 +15,9 @@ CREATE TABLE transactions (
 
 CREATE INDEX idx_transactions_date ON transactions (date);
 CREATE INDEX idx_transactions_type ON transactions (type);
+
+DROP TABLE IF EXISTS closed_periods;
+CREATE TABLE closed_periods (
+    date      DATE PRIMARY KEY,
+    closed_at TIMESTAMP NOT NULL
+);

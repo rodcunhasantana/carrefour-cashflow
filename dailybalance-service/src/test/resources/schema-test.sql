@@ -16,3 +16,9 @@ CREATE TABLE daily_balances (
 
 CREATE INDEX idx_dailybalance_date ON daily_balances (date);
 CREATE INDEX idx_dailybalance_status ON daily_balances (status);
+
+DROP TABLE IF EXISTS processed_events;
+CREATE TABLE processed_events (
+    event_id    VARCHAR(36) PRIMARY KEY,
+    processed_at TIMESTAMP NOT NULL
+);

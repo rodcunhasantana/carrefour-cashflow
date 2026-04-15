@@ -15,8 +15,12 @@ import com.carrefourbank.dailybalance.application.mapper.DailyBalanceMapper;
 import com.carrefourbank.dailybalance.application.port.DailyBalanceService;
 import com.carrefourbank.dailybalance.domain.model.BalanceStatus;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
+import com.carrefourbank.dailybalance.domain.port.BalanceEventPublisher;
 import com.carrefourbank.dailybalance.domain.port.DailyBalanceRepository;
+import com.carrefourbank.dailybalance.domain.port.ProcessedEventRepository;
 import com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +33,23 @@ import java.util.UUID;
 @Transactional
 public class DailyBalanceServiceImpl implements DailyBalanceService {
 
+    private static final Logger log = LoggerFactory.getLogger(DailyBalanceServiceImpl.class);
+
     private final DailyBalanceRepository repository;
+    private final ProcessedEventRepository processedEventRepository;
+    private final BalanceEventPublisher balanceEventPublisher;
     private final DailyBalanceMapper mapper;
     private final DailyBalanceLogger logger;
 
-    public DailyBalanceServiceImpl(DailyBalanceRepository repository, DailyBalanceMapper mapper, DailyBalanceLogger logger) {
+    public DailyBalanceServiceImpl(
+            DailyBalanceRepository repository,
+            ProcessedEventRepository processedEventRepository,
+            BalanceEventPublisher balanceEventPublisher,
+            DailyBalanceMapper mapper,
+            DailyBalanceLogger logger) {
         this.repository = repository;
+        this.processedEventRepository = processedEventRepository;
+        this.balanceEventPublisher = balanceEventPublisher;
         this.mapper = mapper;
         this.logger = logger;
     }
@@ -65,6 +80,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
         DailyBalance balance = findBalanceByDate(date);
         DailyBalance closed = balance.close();
         DailyBalance saved = repository.save(closed);
+        balanceEventPublisher.publishPeriodClosedEvent(saved);
         logger.logClosed(saved);
         return mapper.toDTO(saved);
     }
@@ -103,7 +119,11 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
-    public void applyTransaction(LocalDate date, Money amount, TransactionType type) {
+    public void applyTransaction(String eventId, LocalDate date, Money amount, TransactionType type) {
+        if (!processedEventRepository.markAsProcessed(eventId)) {
+            log.warn("Duplicate event skipped: eventId={}", eventId);
+            return;
+        }
         DailyBalance balance = findOrCreateForDate(date);
         DailyBalance updated = type == TransactionType.CREDIT
                 ? balance.withAddedCredit(amount)

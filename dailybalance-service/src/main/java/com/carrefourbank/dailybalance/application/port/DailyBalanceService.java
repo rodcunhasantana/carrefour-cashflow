@@ -20,5 +20,5 @@ public interface DailyBalanceService {
     DailyBalanceDTO reopenBalance(LocalDate date, ReopenBalanceRequest request);
     RecalculateResponse recalculate(LocalDate date);
     ExportStatusResponse exportToERP(ExportBalanceRequest request);
-    void applyTransaction(LocalDate date, Money amount, TransactionType type);
+    void applyTransaction(String eventId, LocalDate date, Money amount, TransactionType type);
 }

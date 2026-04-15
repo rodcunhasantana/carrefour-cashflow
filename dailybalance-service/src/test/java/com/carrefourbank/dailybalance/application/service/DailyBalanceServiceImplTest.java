@@ -14,7 +14,9 @@ import com.carrefourbank.dailybalance.application.mapper.DailyBalanceMapper;
 import com.carrefourbank.dailybalance.domain.exception.BalanceAlreadyClosedException;
 import com.carrefourbank.dailybalance.domain.model.BalanceStatus;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
+import com.carrefourbank.dailybalance.domain.port.BalanceEventPublisher;
 import com.carrefourbank.dailybalance.domain.port.DailyBalanceRepository;
+import com.carrefourbank.dailybalance.domain.port.ProcessedEventRepository;
 import com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +42,12 @@ class DailyBalanceServiceImplTest {
 
     @Mock
     private DailyBalanceRepository repository;
+
+    @Mock
+    private ProcessedEventRepository processedEventRepository;
+
+    @Mock
+    private BalanceEventPublisher balanceEventPublisher;
 
     @Mock
     private DailyBalanceLogger logger;
@@ -96,6 +104,17 @@ class DailyBalanceServiceImplTest {
     }
 
     @Test
+    void closeBalance_publishesPeriodClosedEvent() {
+        DailyBalance balance = DailyBalance.create(DATE, OPENING);
+        when(repository.findByDate(DATE)).thenReturn(Optional.of(balance));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.closeBalance(DATE, new CloseBalanceRequest(null));
+
+        verify(balanceEventPublisher).publishPeriodClosedEvent(any(DailyBalance.class));
+    }
+
+    @Test
     void closeBalance_propagatesBalanceAlreadyClosedException() {
         DailyBalance closed = DailyBalance.create(DATE, OPENING).close();
         when(repository.findByDate(DATE)).thenReturn(Optional.of(closed));
@@ -135,11 +154,12 @@ class DailyBalanceServiceImplTest {
     @Test
     void applyTransaction_credit_createsNewBalanceWhenNotExists() {
         Money credit = Money.of(new BigDecimal("500.00"), Currency.BRL);
+        when(processedEventRepository.markAsProcessed("evt-1")).thenReturn(true);
         when(repository.findByDate(DATE)).thenReturn(Optional.empty());
         when(repository.findMostRecentClosedBefore(DATE)).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.applyTransaction(DATE, credit, TransactionType.CREDIT);
+        service.applyTransaction("evt-1", DATE, credit, TransactionType.CREDIT);
 
         verify(repository, times(2)).save(any(DailyBalance.class));
     }
@@ -148,11 +168,23 @@ class DailyBalanceServiceImplTest {
     void applyTransaction_debit_appliesOnExistingBalance() {
         DailyBalance existing = DailyBalance.create(DATE, OPENING);
         Money debit = Money.of(new BigDecimal("-200.00"), Currency.BRL);
+        when(processedEventRepository.markAsProcessed("evt-2")).thenReturn(true);
         when(repository.findByDate(DATE)).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.applyTransaction(DATE, debit, TransactionType.DEBIT);
+        service.applyTransaction("evt-2", DATE, debit, TransactionType.DEBIT);
 
         verify(repository).save(argThat(b -> b.totalDebits().amount().compareTo(new BigDecimal("-200.00")) == 0));
+    }
+
+    @Test
+    void applyTransaction_duplicate_eventId_skipsProcessing() {
+        Money credit = Money.of(new BigDecimal("500.00"), Currency.BRL);
+        when(processedEventRepository.markAsProcessed("evt-dup")).thenReturn(false);
+
+        service.applyTransaction("evt-dup", DATE, credit, TransactionType.CREDIT);
+
+        verify(repository, never()).findByDate(any());
+        verify(repository, never()).save(any());
     }
 }

@@ -10,8 +10,10 @@ import com.carrefourbank.transaction.application.dto.TransactionDTO;
 import com.carrefourbank.transaction.application.dto.TransactionPageResponse;
 import com.carrefourbank.transaction.application.mapper.TransactionMapper;
 import com.carrefourbank.transaction.domain.exception.AlreadyReversedException;
+import com.carrefourbank.transaction.domain.exception.PeriodClosedException;
 import com.carrefourbank.transaction.domain.model.Transaction;
 import com.carrefourbank.transaction.domain.model.TransactionStatus;
+import com.carrefourbank.transaction.domain.port.ClosedPeriodRepository;
 import com.carrefourbank.transaction.domain.port.TransactionEventPublisher;
 import com.carrefourbank.transaction.domain.port.TransactionRepository;
 import com.carrefourbank.transaction.infrastructure.logging.TransactionLogger;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.*;
 class TransactionServiceImplTest {
 
     @Mock private TransactionRepository repository;
+    @Mock private ClosedPeriodRepository closedPeriodRepository;
     @Mock private TransactionEventPublisher eventPublisher;
     @Mock private TransactionLogger logger;
 
@@ -44,7 +47,7 @@ class TransactionServiceImplTest {
     @BeforeEach
     void setUp() {
         mapper = new TransactionMapper();
-        service = new TransactionServiceImpl(repository, eventPublisher, mapper, logger);
+        service = new TransactionServiceImpl(repository, closedPeriodRepository, eventPublisher, mapper, logger);
     }
 
     @Test
@@ -53,6 +56,7 @@ class TransactionServiceImplTest {
                 TransactionType.CREDIT, new BigDecimal("100.00"), LocalDate.now(), "Test");
         Transaction saved = Transaction.create(TransactionType.CREDIT,
                 Money.ofBRL(new BigDecimal("100.00")), LocalDate.now(), "Test");
+        when(closedPeriodRepository.isDateClosed(command.date())).thenReturn(false);
         when(repository.save(any())).thenReturn(saved);
 
         TransactionDTO result = service.create(command);
@@ -61,6 +65,18 @@ class TransactionServiceImplTest {
         verify(repository).save(any());
         verify(eventPublisher).publishTransactionCreatedEvent(saved);
         verify(logger).logCreated(saved);
+    }
+
+    @Test
+    void create_throws_period_closed_when_date_is_closed() {
+        LocalDate closedDate = LocalDate.of(2026, 4, 10);
+        TransactionCreateCommand command = new TransactionCreateCommand(
+                TransactionType.CREDIT, new BigDecimal("100.00"), closedDate, "Late entry");
+        when(closedPeriodRepository.isDateClosed(closedDate)).thenReturn(true);
+
+        assertThrows(PeriodClosedException.class, () -> service.create(command));
+        verify(repository, never()).save(any());
+        verify(eventPublisher, never()).publishTransactionCreatedEvent(any());
     }
 
     @Test

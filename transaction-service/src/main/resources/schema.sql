@@ -13,3 +13,8 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions (type);
+
+CREATE TABLE IF NOT EXISTS closed_periods (
+    date      DATE PRIMARY KEY,
+    closed_at TIMESTAMP NOT NULL
+);

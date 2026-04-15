@@ -13,8 +13,10 @@ import com.carrefourbank.transaction.application.dto.TransactionPageResponse;
 import com.carrefourbank.transaction.application.mapper.TransactionMapper;
 import com.carrefourbank.transaction.application.port.TransactionService;
 import com.carrefourbank.transaction.domain.exception.AlreadyReversedException;
+import com.carrefourbank.transaction.domain.exception.PeriodClosedException;
 import com.carrefourbank.transaction.domain.model.Transaction;
 import com.carrefourbank.transaction.domain.model.TransactionStatus;
+import com.carrefourbank.transaction.domain.port.ClosedPeriodRepository;
 import com.carrefourbank.transaction.domain.port.TransactionEventPublisher;
 import com.carrefourbank.transaction.domain.port.TransactionRepository;
 import com.carrefourbank.transaction.infrastructure.logging.TransactionLogger;
@@ -31,16 +33,19 @@ import java.util.UUID;
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository repository;
+    private final ClosedPeriodRepository closedPeriodRepository;
     private final TransactionEventPublisher eventPublisher;
     private final TransactionMapper mapper;
     private final TransactionLogger logger;
 
     public TransactionServiceImpl(
             TransactionRepository repository,
+            ClosedPeriodRepository closedPeriodRepository,
             TransactionEventPublisher eventPublisher,
             TransactionMapper mapper,
             TransactionLogger logger) {
         this.repository = repository;
+        this.closedPeriodRepository = closedPeriodRepository;
         this.eventPublisher = eventPublisher;
         this.mapper = mapper;
         this.logger = logger;
@@ -48,6 +53,9 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public TransactionDTO create(TransactionCreateCommand command) {
+        if (closedPeriodRepository.isDateClosed(command.date())) {
+            throw new PeriodClosedException(command.date().toString());
+        }
         Money amount = Money.of(command.amount(), Currency.BRL);
         Transaction transaction = Transaction.create(command.type(), amount, command.date(), command.description());
         Transaction saved = repository.save(transaction);
