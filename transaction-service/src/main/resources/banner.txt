@@ -9,5 +9,5 @@ ${AnsiColor.CYAN}:: Environment: ${AnsiColor.GREEN}${spring.profiles.active:defa
 ${AnsiColor.CYAN}:: App Version: ${AnsiColor.GREEN}${info.app.version:1.0.0-SNAPSHOT}${AnsiColor.DEFAULT}
 ${AnsiColor.CYAN}:: Java Version: ${AnsiColor.GREEN}${java.version}${AnsiColor.DEFAULT}
 ${AnsiColor.CYAN}:: PID: ${AnsiColor.GREEN}${PID}${AnsiColor.DEFAULT}
-${AnsiColor.CYAN}:: Started at: ${AnsiColor.GREEN}${application.formatted-date}${AnsiColor.DEFAULT}
+${AnsiColor.CYAN}:: Started at: ${AnsiColor.GREEN}${application.formatted-date:N/A}${AnsiColor.DEFAULT}
 ::
