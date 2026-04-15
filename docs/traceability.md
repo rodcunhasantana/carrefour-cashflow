@@ -101,7 +101,7 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 |---|---|
 | **Descrição** | O Daily Balance Service deve permitir fechar um período (data), impedindo novos eventos de alterar o saldo e publicando evento `period-closed`. |
 | **ADR** | [ADR-002](architecture/decisions/002-async-communication.md) · [ADR-003](architecture/decisions/003-database-strategy.md) |
-| **Implementação** | `DailyBalance.close()` · `DailyBalanceServiceImpl.closeBalance()` · `PeriodEventPublisher` · `POST /api/balances/{date}/close` |
+| **Implementação** | `DailyBalance.close()` · `DailyBalanceServiceImpl.closeBalance()` · `PeriodEventPublisher` · `POST /api/dailybalances/{date}/close` |
 | **Testes** | `DailyBalanceTest.close_setsStatusClosedAndClosedAt` · `close_throwsBalanceAlreadyClosedException_whenAlreadyClosed` · `withAddedCredit_throwsBalanceAlreadyClosedException_whenClosed` · `DailyBalanceServiceImplTest.closeBalance_closesAndSaves` · `closeBalance_publishesPeriodClosedEvent` · `closeBalance_propagatesBalanceAlreadyClosedException` · `DailyBalanceControllerTest.closeBalance_returns200_withClosedStatus` · `closeBalance_returns409_whenAlreadyClosed` |
 
 ---
@@ -110,9 +110,9 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 
 | Campo | Valor |
 |---|---|
-| **Descrição** | Um período fechado pode ser reaberto, voltando a aceitar eventos. Publica evento `period-reopened` para que o Transaction Service remova o bloqueio. |
+| **Descrição** | Um período fechado pode ser reaberto, voltando a aceitar eventos. **Nota:** O evento `period-reopened` ainda não está implementado — o Transaction Service não remove o bloqueio de `closed_periods` automaticamente. |
 | **ADR** | [ADR-002](architecture/decisions/002-async-communication.md) |
-| **Implementação** | `DailyBalance.reopen()` · `DailyBalanceServiceImpl.reopenBalance()` · `POST /api/balances/{date}/reopen` |
+| **Implementação** | `DailyBalance.reopen()` · `DailyBalanceServiceImpl.reopenBalance()` · `POST /api/dailybalances/{date}/reopen` · publicação de `period-reopened` **pendente** |
 | **Testes** | `DailyBalanceTest.reopen_setsStatusOpenAndClearsClosedAt` · `reopen_throwsBalanceAlreadyOpenException_whenAlreadyOpen` |
 
 ---
@@ -123,7 +123,7 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 |---|---|
 | **Descrição** | O saldo consolidado de uma data pode ser consultado individualmente ou em listagem paginada com filtro por status. |
 | **ADR** | [ADR-001](architecture/decisions/001-microservices.md) · [ADR-003](architecture/decisions/003-database-strategy.md) |
-| **Implementação** | `DailyBalanceServiceImpl.findByDate()` · `findAll()` · `GET /api/balances/{date}` · `GET /api/balances` |
+| **Implementação** | `DailyBalanceServiceImpl.findByDate()` · `findAll()` · `GET /api/dailybalances/{date}` · `GET /api/dailybalances` |
 | **Testes** | `DailyBalanceTest.create_initializesWithZeroCreditsDebitsAndOpenStatus` · `DailyBalanceServiceImplTest.findByDate_returnsDTO_whenFound` · `findByDate_throwsNotFoundException_whenNotFound` · `findAll_returnsPageResponse` · `DailyBalanceControllerTest.findByDate_returns200_withDTO` · `findByDate_returns404_whenNotFound` · `findAll_returns200_withPageResponse` · `JdbcDailyBalanceRepositoryTest.findAll_withoutFilters_returnsAll` · `findAll_filtersByStatus` · `count_returnsTotalMatchingRecords` |
 
 ---
@@ -134,7 +134,7 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 |---|---|
 | **Descrição** | Para cada data, deve ser possível listar todos os lançamentos que foram processados naquele saldo, com tipo, valor e timestamp. |
 | **ADR** | [ADR-003](architecture/decisions/003-database-strategy.md) (tabela `daily_balance_transactions`) |
-| **Implementação** | `DailyBalanceTransactionRepository` · tabela `daily_balance_transactions` · `DailyBalanceServiceImpl.findTransactionsByDate()` · `GET /api/balances/{date}/transactions` |
+| **Implementação** | `DailyBalanceTransactionRepository` · tabela `daily_balance_transactions` · `DailyBalanceServiceImpl.findTransactionsByDate()` · `GET /api/dailybalances/{date}/transactions` |
 | **Testes** | `DailyBalanceServiceImplTest.applyTransaction_savesAuditEntry` · `findTransactionsByDate_returnsAuditEntries` · `DailyBalanceControllerTest.findTransactionsByDate_returns200_withList` · `findTransactionsByDate_returns404_whenBalanceNotFound` · `JdbcDailyBalanceTransactionRepositoryTest.save_and_findByBalanceId_roundTrip` · `findByBalanceId_returnsMultipleEntriesOrderedByAppliedAt` · `findByBalanceId_returnsEmpty_forUnknownBalance` |
 
 ---
@@ -247,11 +247,11 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 | Domínio (JUnit puro) | 2 | 23 | FR-01, FR-02, FR-03, FR-06, FR-07, FR-08, FR-09, NFR-07 |
 | Serviço (Mockito) | 2 | 21 | FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12 |
 | Web (MockMvc) | 2 | 16 | FR-01, FR-02, FR-03, FR-04, FR-08, FR-10, FR-11 |
-| Persistência JDBC (H2) | 3 | 21 | FR-01, FR-03, FR-04, FR-06, FR-10, FR-11, FR-12, NFR-06 |
+| Persistência JDBC (H2) | 3 | 25 | FR-01, FR-03, FR-04, FR-06, FR-10, FR-11, FR-12, NFR-06 |
 | Cache (`@SpringBootTest` + `@MockBean`) | 1 | 4 | NFR-08 |
-| **Total** | **10** | **85** | |
+| **Total** | **10** | **89** | **121 testes únicos** |
 
-> **Nota:** O total de 85 métodos considera a soma das camadas; o número real de testes únicos é 69.
+> **Nota:** O total de 89 métodos considera a soma das camadas (inclui 4 testes de cache adicionados na sessão 4); o número real de testes únicos é 121.
 
 ---
 
@@ -259,8 +259,8 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 
 | Gap | FR/NFR | Impacto | Observação |
 |---|---|---|---|
+| `period-reopened` não publicado | FR-09 | Alto | `reopenBalance()` salva status OPEN no banco mas não publica evento; `closed_periods` no Transaction Service não é removido automaticamente. Mapeado no roadmap. |
 | Sem teste de integração do `PeriodEventConsumer` | FR-05 | Médio | Validado apenas via teste unitário de serviço com mock |
 | Sem teste E2E Transaction → Pub/Sub → DBS | FR-06, FR-07 | Médio | Fluxo completo só validado manualmente no Docker |
 | Sem teste automatizado de DLQ | NFR-04 | Baixo | DLQ validada manualmente via emulador |
-| Sem teste de carga (k6) | NFR-03 | Médio | Limites do circuit breaker não validados sob carga |
 | Sem teste do `ApiKeyAuthFilter` aplicado | NFR-01 | Baixo | Filtro validado manualmente; controllers usam MockMvc standalone sem Security |

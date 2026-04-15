@@ -18,7 +18,9 @@ Representa o saldo consolidado de um dia específico. É o agregado principal re
 | `totalDebits` | `Money` | Soma de todos os débitos processados no dia (valor negativo). |
 | `closingBalance` | `Money` | Saldo final (`openingBalance + totalCredits + totalDebits`). |
 | `status` | `BalanceStatus` | Estado do dia (`OPEN` ou `CLOSED`). |
-| `balancedAt` | `LocalDateTime` | Data/hora da última atualização. |
+| `closedAt` | `LocalDateTime` | Data/hora do fechamento (nulo quando `OPEN`). |
+| `createdAt` | `LocalDateTime` | Timestamp de criação do registro. |
+| `updatedAt` | `LocalDateTime` | Timestamp da última atualização. |
 
 #### **Regras de Negócio**
 - **Cálculo de Saldo:** O saldo de fechamento é sempre recalculado a cada nova transação para garantir precisão.
@@ -37,7 +39,7 @@ Representa o saldo consolidado de um dia específico. É o agregado principal re
 
 ## 2. Value Objects
 
-- **`Money`**: Encapsula o valor numérico (`BigDecimal`) e a moeda (`Currency`).
+- **`Money`**: Encapsula o valor numérico (`BigDecimal`) e a moeda (`Currency` enum — `BRL`, `USD`, `EUR`).
 - **`BalanceStatus` (Enum)**:
   - `OPEN`: Aceita novos eventos de transação.
   - `CLOSED`: Saldo consolidado e bloqueado para alterações. Pode ser reaberto via `reopen()`.
@@ -75,24 +77,24 @@ Responsável pela orquestração do domínio:
 | `total_credits` | NUMERIC | Total de créditos do dia |
 | `total_debits` | NUMERIC | Total de débitos do dia |
 | `closing_balance` | NUMERIC | Saldo de fechamento |
-| `currency` | VARCHAR | Moeda (`BRL`) |
 | `status` | VARCHAR | `OPEN` ou `CLOSED` |
-| `balanced_at` | TIMESTAMP | Data/hora da última atualização |
+| `closed_at` | TIMESTAMP | Data/hora do fechamento (NULL quando OPEN) |
+| `created_at` | TIMESTAMP | Timestamp de criação |
+| `updated_at` | TIMESTAMP | Timestamp da última atualização |
 
 ### `daily_balance_transactions`
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id` | UUID (PK) | Identificador único do registro |
-| `daily_balance_id` | UUID (FK) | Referência ao saldo do dia |
-| `transaction_id` | UUID | ID da transação original |
-| `type` | VARCHAR | `CREDIT` ou `DEBIT` |
-| `amount` | NUMERIC | Valor do lançamento |
-| `currency` | VARCHAR | Moeda |
-| `description` | TEXT | Descrição do lançamento |
-| `transaction_date` | DATE | Data do lançamento |
-| `processed_at` | TIMESTAMP | Data/hora em que foi processado |
+| `id` | VARCHAR(36) (PK) | Identificador único do registro |
+| `balance_id` | VARCHAR(36) (FK) | Referência ao saldo do dia (`daily_balances.id`) |
+| `transaction_id` | VARCHAR(36) | ID da transação original no transaction-service |
+| `event_id` | VARCHAR(36) | `eventId` do envelope Pub/Sub (unicidade) |
+| `transaction_type` | VARCHAR | `CREDIT` ou `DEBIT` |
+| `amount` | DECIMAL(19,4) | Valor do lançamento |
+| `currency` | VARCHAR(3) | Moeda (`BRL`) |
+| `applied_at` | TIMESTAMP | Data/hora em que foi aplicado ao saldo |
 
-Populada ao consumir cada evento de transação. Consultada via `GET /api/balances/{date}/transactions`.
+Populada ao consumir cada evento de transação. Consultada via `GET /api/dailybalances/{date}/transactions`.
 
 ### `processed_events`
 | Coluna | Tipo | Descrição |
@@ -124,7 +126,8 @@ Garante que mensagens entregues mais de uma vez pelo Pub/Sub (at-least-once deli
 ### Publicados (tópico `period-events`)
 
 - **`PeriodClosedEvent`**: Data do período fechado → Transaction Service insere em `closed_periods`.
-- **`PeriodReopenedEvent`**: Data do período reaberto → Transaction Service remove de `closed_periods`.
+
+> **Nota:** O evento `PeriodReopenedEvent` ainda **não está implementado**. Ao reabrir um período (`reopenBalance`), o saldo é marcado como `OPEN` no banco, mas nenhum evento é publicado. Como consequência, o Transaction Service não remove a data de `closed_periods` automaticamente — o bloqueio de lançamentos para aquela data permanece ativo até reinício ou intervenção manual. Esta lacuna está mapeada no [roadmap](../../roadmap.md).
 
 ---
 
@@ -133,8 +136,8 @@ Garante que mensagens entregues mais de uma vez pelo Pub/Sub (at-least-once deli
 | Exceção | HTTP | Quando é lançada |
 |---|---|---|
 | `BalanceNotFoundException` | 404 | Saldo não encontrado para a data |
-| `BalanceAlreadyClosedException` | 422 | Tentativa de fechar um saldo já fechado |
-| `BalanceAlreadyOpenException` | 422 | Tentativa de reabrir um saldo já aberto |
+| `BalanceAlreadyClosedException` | 409 | Tentativa de fechar um saldo já fechado |
+| `BalanceAlreadyOpenException` | 409 | Tentativa de reabrir um saldo já aberto |
 
 ---
 
@@ -150,7 +153,7 @@ Garante que mensagens entregues mais de uma vez pelo Pub/Sub (at-least-once deli
 | - totalCredits |       +----------------+
 | - totalDebits  |
 | - closingBal   |       +-------------------------------+
-| - balancedAt   |       |  DailyBalanceTransaction      |
+| - closedAt     |       |  DailyBalanceTransaction      |
 | - status       |       +-------------------------------+
 +----------------+       | - id: UUID                    |
 | + addCredit()  |       | - dailyBalanceId: UUID (FK)   |

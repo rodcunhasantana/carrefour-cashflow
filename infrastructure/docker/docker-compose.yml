@@ -173,6 +173,21 @@ services:
       retries: 5
       start_period: 30s
 
+  # ─── k6 — Teste de Performance (profile: perf) ──────────────────────────────
+  # Uso: podman compose -f infrastructure/docker/docker-compose.yml --profile perf run --rm k6
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    profiles: ["perf"]
+    depends_on:
+      transaction-service:
+        condition: service_healthy
+      dailybalance-service:
+        condition: service_healthy
+    volumes:
+      - ../../k6:/scripts
+    command: run /scripts/load-test.js
+
 volumes:
   transaction-data:
   dailybalance-data:

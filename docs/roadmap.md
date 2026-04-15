@@ -167,3 +167,13 @@ Nova funcionalidade solicitada
 | Flyway | Evolução do banco sem downtime e com histórico auditável | Baixo |
 | Cloud Monitoring + Trace | Detecção proativa de problemas e rastreabilidade financeira | Baixo–Médio |
 | IA no desenvolvimento | Maior velocidade de entrega com menor risco de regressão | Baixo (configuração) |
+
+---
+
+## Gaps Técnicos Pendentes
+
+Itens identificados na implementação atual que precisam de atenção antes de produção:
+
+| Gap | Impacto | O que fazer |
+|---|---|---|
+| `period-reopened` não publicado | Alto — reabertura de período não remove bloqueio no Transaction Service | Implementar `publishPeriodReopenedEvent` em `BalanceEventPublisher` e `PubSubBalanceEventPublisher`; consumer já existe no Transaction Service |

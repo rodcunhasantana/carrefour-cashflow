@@ -57,7 +57,7 @@ Adotaremos um padrão de **comunicação assíncrona baseada em eventos** utiliz
 * **Idempotência:** ✅ Implementada. O Daily Balance Service persiste o `eventId` na tabela `processed_events` antes de aplicar cada evento. Reentregas com o mesmo `eventId` são descartadas via `DuplicateKeyException`.
 * **Fechamento de Período:** ✅ Implementado. O Daily Balance Service publica evento `period-closed` no tópico `period-events`. O Transaction Service consome esse evento e persiste a data em `closed_periods`, passando a rejeitar novos lançamentos para datas fechadas com HTTP 422.
 * **Ordenação:** O sistema não depende de ordem — cada evento é aplicado de forma acumulativa ao saldo do dia correspondente.
-* **Monitoramento:** Alertas para latência de mensagens e filas com acúmulo são recomendados (Dead Letter Queues não configuradas no ambiente local).
+* **Monitoramento:** Alertas para latência de mensagens e filas com acúmulo são recomendados. Dead Letter Queues (`transaction-events-dlq`, `period-events-dlq`) estão configuradas com `maxDeliveryAttempts: 5` tanto no ambiente local (emulador Pub/Sub via `docker-compose.yml`) quanto em produção.
 * **Contrato de Dados:** Novos campos são sempre adicionados como opcionais. Consumidores ignoram campos desconhecidos.
 
 ---

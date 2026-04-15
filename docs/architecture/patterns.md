@@ -76,7 +76,9 @@ com.carrefourbank.transaction
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(UUID id);
-    List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
+    List<Transaction> findAll(TransactionType type, int offset, int limit);
+    int count(TransactionType type);
+    boolean existsReversalFor(UUID originalId);
 }
 ```
 
@@ -147,9 +149,11 @@ Implementado para abstrair a persistência de dados, permitindo que o domínio t
 ```java
 // Interface define operações sem detalhes de implementação
 public interface DailyBalanceRepository {
-    DailyBalance findByDate(LocalDate date);
+    Optional<DailyBalance> findByDate(LocalDate date);
     DailyBalance save(DailyBalance dailyBalance);
-    List<DailyBalance> findByDateBetween(LocalDate startDate, LocalDate endDate);
+    List<DailyBalance> findAll(BalanceStatus status, int offset, int limit);
+    int count(BalanceStatus status);
+    Optional<DailyBalance> findMostRecentClosedBefore(LocalDate date);
 }
 
 // Implementação concreta

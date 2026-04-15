@@ -19,11 +19,12 @@ Adotamos uma estratégia de testes em múltiplas camadas, seguindo o modelo da *
 2. **Testes Unitários de Serviço** — JUnit 5 + Mockito. Cobrem application services com dependências mockadas.
 3. **Testes de Integração JDBC** — H2 in-memory com schema idêntico ao PostgreSQL (`schema-test.sql`). Cobrem os repositórios com SQL real.
 4. **Testes Web (MockMvc standalone)** — Spring MockMvc sem Spring Security aplicado. Cobrem os controllers REST, validações e status HTTP.
-5. **Smoke Test de Contexto** — `@SpringBootTest` verifica inicialização completa do contexto Spring (incluindo Security, Pub/Sub mockado, tracing).
+5. **Testes de Cache** — `@SpringBootTest` + `@MockBean` com Caffeine ativo. Validam `@Cacheable`/`@CacheEvict` no Daily Balance Service.
+6. **Smoke Test de Contexto** — `@SpringBootTest` verifica inicialização completa do contexto Spring (incluindo Security, Pub/Sub mockado, tracing).
 
 ### Estado atual
 
-- **Total de testes:** 117 (0 falhas, 0 skips)
+- **Total de testes:** 121 (0 falhas, 0 skips)
 - **Execução:** `mvn clean install` (todos os módulos)
 
 ---
@@ -36,6 +37,7 @@ Adotamos uma estratégia de testes em múltiplas camadas, seguindo o modelo da *
 | Unitários de serviço | JUnit 5 + Mockito |
 | Integração JDBC | JUnit 5 + H2 in-memory (`MODE=PostgreSQL`) |
 | Web / REST | Spring MockMvc (standalone) |
+| Cache | `@SpringBootTest` + `@MockBean` + Caffeine ativo |
 | Smoke test | `@SpringBootTest` + `application-test.yml` |
 
 > **Nota sobre TestContainers:** O ADR original previa TestContainers para testes de integração com banco real. Na implementação atual, optou-se por H2 in-memory com `MODE=PostgreSQL` por ser mais rápido na pipeline local e não exigir Docker durante os testes. TestContainers pode ser adotado em uma fase posterior para maior fidelidade ao PostgreSQL.

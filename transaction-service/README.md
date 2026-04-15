@@ -115,7 +115,8 @@ O serviço estará disponível em: `http://localhost:8080/transaction-service`
 
 ## API
 
-Documentação completa: [`docs/architecture/api/transaction-service-api.md`](../docs/architecture/api/transaction-service-api.md)
+Documentação interativa disponível via **Swagger UI** com o serviço rodando:
+`http://localhost:8080/transaction-service/swagger-ui.html`
 
 ### Endpoints
 
@@ -149,14 +150,21 @@ curl -X POST http://localhost:8080/transaction-service/api/transactions \
 
 ```sql
 CREATE TABLE IF NOT EXISTS transactions (
-    id          VARCHAR(36)    PRIMARY KEY,   -- UUID
-    type        VARCHAR(10)    NOT NULL,       -- CREDIT | DEBIT
-    amount      DECIMAL(19,4)  NOT NULL,
-    currency    VARCHAR(3)     NOT NULL,       -- BRL, USD, EUR, GBP
-    date        DATE           NOT NULL,
-    description VARCHAR(255)   NOT NULL,
-    created_at  TIMESTAMP      NOT NULL,
-    status      VARCHAR(20)    NOT NULL        -- PENDING | COMPLETED | FAILED
+    id                      VARCHAR(36)    PRIMARY KEY,
+    type                    VARCHAR(10)    NOT NULL,       -- CREDIT | DEBIT
+    amount                  DECIMAL(19,4)  NOT NULL,
+    currency                VARCHAR(3)     NOT NULL,
+    date                    DATE           NOT NULL,
+    description             VARCHAR(255)   NOT NULL,
+    created_at              TIMESTAMP      NOT NULL,
+    status                  VARCHAR(20)    NOT NULL,       -- PENDING | COMPLETED | CANCELED | REVERSED
+    is_reversal             BOOLEAN        DEFAULT FALSE,
+    original_transaction_id VARCHAR(36)                   -- FK para transação original (estornos)
+);
+
+CREATE TABLE IF NOT EXISTS closed_periods (
+    date      DATE PRIMARY KEY,
+    closed_at TIMESTAMP NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date);
@@ -258,7 +266,7 @@ transaction-service/
 │   │   │   ├── domain/
 │   │   │   │   ├── model/
 │   │   │   │   │   ├── Transaction.java       # Entidade imutável
-│   │   │   │   │   └── TransactionStatus.java # Enum: PENDING, COMPLETED, FAILED
+│   │   │   │   │   └── TransactionStatus.java # Enum: PENDING, COMPLETED, CANCELED, REVERSED
 │   │   │   │   ├── exception/
 │   │   │   │   │   ├── TransactionAlreadyReversedException.java
 │   │   │   │   │   └── PeriodClosedException.java

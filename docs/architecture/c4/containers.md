@@ -23,7 +23,7 @@ C4Container
     }
 
     Rel(financialAnalyst, transactionService, "POST /transactions, GET /transactions", "HTTPS — X-API-Key header")
-    Rel(accountant, dailyBalanceService, "GET /balances/{date}, POST /balances/{date}/close", "HTTPS — X-API-Key header")
+    Rel(accountant, dailyBalanceService, "GET /dailybalances/{date}, POST /dailybalances/{date}/close", "HTTPS — X-API-Key header")
 
     Rel(transactionService, transactionDb, "Lê e escreve via JDBC", "PostgreSQL")
     Rel(dailyBalanceService, dailyBalanceDb, "Lê e escreve via JDBC", "PostgreSQL")
@@ -31,7 +31,7 @@ C4Container
     Rel(transactionService, messageBus, "Publica TransactionCreatedEvent / TransactionReversedEvent", "topic: transaction-events")
     Rel(messageBus, dailyBalanceService, "Entrega eventos de transação", "subscription: dailybalance-transaction-subscription")
 
-    Rel(dailyBalanceService, messageBus, "Publica PeriodClosedEvent / PeriodReopenedEvent", "topic: period-events")
+    Rel(dailyBalanceService, messageBus, "Publica PeriodClosedEvent", "topic: period-events")
     Rel(messageBus, transactionService, "Entrega eventos de período", "subscription: transaction-period-subscription")
 
     Rel(transactionService, secretManager, "Obtém APP_API_KEY e credenciais DB", "HTTPS")
@@ -119,7 +119,7 @@ Cliente → POST /transaction-service/api/transactions (X-API-Key)
 
 **Fechamento de Período:**
 ```
-Cliente → POST /dailybalance-service/api/balances/{date}/close (X-API-Key)
+Cliente → POST /dailybalance-service/api/dailybalances/{date}/close (X-API-Key)
        → Daily Balance Service → dailybalance-db (status = CLOSED)
        → Daily Balance Service → Pub/Sub (topic: period-events, type: period-closed)
        → Transaction Service consome evento → transaction-db (INSERT closed_periods)
@@ -128,16 +128,15 @@ Cliente → POST /dailybalance-service/api/balances/{date}/close (X-API-Key)
 
 **Reabertura de Período:**
 ```
-Cliente → POST /dailybalance-service/api/balances/{date}/reopen (X-API-Key)
+Cliente → POST /dailybalance-service/api/dailybalances/{date}/reopen (X-API-Key)
        → Daily Balance Service → dailybalance-db (status = OPEN)
-       → Daily Balance Service → Pub/Sub (topic: period-events, type: period-reopened)
-       → Transaction Service consome evento → transaction-db (DELETE closed_periods WHERE date)
-       → A partir daqui: novos lançamentos para {date} voltam a ser aceitos
+       [NOTA: evento period-reopened ainda NÃO é publicado — ver roadmap]
+       → closed_periods no Transaction Service NÃO é removido automaticamente
 ```
 
 **Auditoria de Lançamentos por Data:**
 ```
-Cliente → GET /dailybalance-service/api/balances/{date}/transactions (X-API-Key)
+Cliente → GET /dailybalance-service/api/dailybalances/{date}/transactions (X-API-Key)
        → Daily Balance Service → daily_balance_transactions (SELECT WHERE date)
        → Retorna lista de lançamentos consolidados naquele dia
 ```
@@ -167,11 +166,3 @@ Cliente → GET /dailybalance-service/api/balances/{date}/transactions (X-API-Ke
 - Cloud Run escala automaticamente com base na demanda (0 a N instâncias)
 - Comunicação assíncrona via Pub/Sub desacopla os serviços e absorve picos
 
----
-
-## Evolução Futura
-
-- **Frontend Web**: Interface Angular para operação sem uso direto da API
-- **API Gateway**: Roteamento centralizado e rate limiting
-- **Notification Service**: Alertas sobre saldos críticos e DLQ acumulada
-- **BigQuery Integration**: Análise histórica de saldos consolidados

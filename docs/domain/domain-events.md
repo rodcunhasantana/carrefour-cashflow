@@ -144,6 +144,8 @@ Essa abordagem garante que o mesmo `eventId` nunca acumule saldo duas vezes, mes
 | `transaction-events` | `dailybalance-transaction-subscription` | transaction-service | dailybalance-service |
 | `period-events` | `transaction-period-subscription` | dailybalance-service | transaction-service |
 
+> **Nota sobre `period-reopened`:** O evento `period-reopened` **não está implementado** no Daily Balance Service. Ao reabrir um período via `POST /api/dailybalances/{date}/reopen`, o saldo é atualizado para `OPEN` no banco, mas nenhum evento é publicado no tópico `period-events`. O consumer `PeriodEventConsumer` no Transaction Service está preparado para processar esse evento, mas enquanto ele não for emitido, a reabertura de período não remove o registro de `closed_periods` automaticamente. Esta lacuna está mapeada no [roadmap](../../roadmap.md).
+
 Ambos os tópicos e subscriptions são criados automaticamente pelo container `pubsub-setup` no `docker-compose.yml` ao subir o ambiente local.
 
 ## Ordenação de Eventos

@@ -117,7 +117,8 @@ O serviço estará disponível em: `http://localhost:8081/dailybalance-service`
 
 ## API
 
-Documentação completa: [`docs/api/dailybalance-service-api.md`](../docs/api/dailybalance-service-api.md)
+Documentação interativa disponível via **Swagger UI** com o serviço rodando:
+`http://localhost:8081/dailybalance-service/swagger-ui.html`
 
 ### Endpoints
 

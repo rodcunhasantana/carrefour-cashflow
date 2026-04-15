@@ -54,7 +54,9 @@ Orquestra a lógica de criação, consulta e estorno:
 Interface de abstração para persistência (PostgreSQL):
 - `save(Transaction)`: Persiste o estado atual.
 - `findById(UUID)`: Busca por ID.
-- `findByDateBetween(...)`: Recupera transações para relatórios ou consolidação.
+- `findAll(...)`: Recupera transações com paginação e filtro opcional por tipo.
+- `count(...)`: Conta registros com filtro opcional por tipo.
+- `existsReversalFor(UUID)`: Verifica se já existe um estorno para a transação informada.
 
 ### `ClosedPeriodRepository`
 Interface para verificação e gestão de períodos fechados:
@@ -76,7 +78,8 @@ Interface para verificação e gestão de períodos fechados:
 | `date` | DATE | Data do lançamento |
 | `description` | TEXT | Descrição do lançamento |
 | `status` | VARCHAR | `PENDING`, `COMPLETED`, `CANCELED`, `REVERSED` |
-| `reversal_of` | UUID (FK) | ID da transação original (apenas para estornos) |
+| `is_reversal` | BOOLEAN | `true` se este registro é um estorno |
+| `original_transaction_id` | VARCHAR(36) (FK) | ID da transação original (apenas para estornos) |
 | `created_at` | TIMESTAMP | Data/hora de criação |
 
 ### `closed_periods`
@@ -101,6 +104,8 @@ Populada automaticamente ao consumir eventos `period-closed` do tópico `period-
 - **`PeriodClosedEvent`**: Data do período fechado → insere em `closed_periods`.
 - **`PeriodReopenedEvent`**: Data do período reaberto → remove de `closed_periods`.
 
+> **Nota:** O evento `PeriodReopenedEvent` ainda **não está publicado** pelo Daily Balance Service. O consumer `PeriodEventConsumer` está implementado e pronto para processar esse evento, mas enquanto ele não for publicado, a reabertura de período no Daily Balance Service não remove automaticamente o bloqueio de `closed_periods`.
+
 ---
 
 ## 6. Exceções de Domínio
@@ -108,7 +113,7 @@ Populada automaticamente ao consumir eventos `period-closed` do tópico `period-
 | Exceção | HTTP | Quando é lançada |
 |---|---|---|
 | `PeriodClosedException` | 422 | Tentativa de criar lançamento em data com período fechado |
-| `TransactionNotFoundException` | 404 | Transação não encontrada por ID |
+| `NotFoundException` | 404 | Transação não encontrada por ID |
 | `ValidationException` | 400 | Dados inválidos na requisição |
 
 ---
@@ -126,7 +131,7 @@ Populada automaticamente ao consumir eventos `period-closed` do tópico `period-
 | - description  |       +-----------------+      +----------------+
 | - createdAt    |       |TransactionStatus|      | ClosedPeriod   |
 | - status       |       +-----------------+      +----------------+
-| - reversalOf   |       | PENDING         |      | - date: Date   |
+| - isReversal   |       | PENDING         |      | - date: Date   |
 +----------------+       | COMPLETED       |      | - closedAt     |
 | + validate()   |       | CANCELED        |      +----------------+
 | + createRev...()|      | REVERSED        |

@@ -55,17 +55,19 @@ C4Context
 
 ### Sistemas Externos
 
+> **Nota:** Os sistemas externos listados abaixo representam integrações **planejadas** (roadmap). Nenhuma delas está implementada na versão atual. A autenticação atual usa API Key direta (`X-API-Key`), sem integração com sistema de autenticação corporativo.
+
 **ERP Corporativo**
-- **Relação**: Sistema central do Carrefour que recebe dados consolidados do Cashflow
-- **Interação**: Comunicação periódica através de integrações para consolidação financeira global
+- **Relação**: Sistema central do Carrefour que poderia receber dados consolidados do Cashflow
+- **Interação**: Integração futura para consolidação financeira global — atualmente não conectada
 
 **Sistema de Autenticação**
 - **Relação**: Provedor de identidade corporativa do Carrefour
-- **Interação**: Autenticação de usuários e controle de acesso baseado em papéis
+- **Interação**: Integração futura para SSO corporativo — atualmente a autenticação é via API Key
 
 **Data Warehouse**
 - **Relação**: Repositório central de dados para análise financeira
-- **Interação**: Recebe dados financeiros consolidados para análises complexas, BI e reporting estratégico
+- **Interação**: Integração futura para BI e reporting estratégico — atualmente não conectada
 
 ---
 
@@ -90,22 +92,18 @@ C4Context
 - Analisa indicadores financeiros através de dashboards
 - Monitora tendências de fluxo de caixa para decisões estratégicas
 
-### Interações com Sistemas Externos
+### Interações com Sistemas Externos (planejadas)
 
-**Cashflow System → ERP Corporativo**
-- Envio periódico (diário/mensal) de dados consolidados
-- Reconciliação automática entre registros financeiros e contábeis
-- Notificação de divergências para resolução
+> As interações abaixo são **integrações futuras** mapeadas no roadmap. O sistema atual opera de forma independente, sem dependência de sistemas corporativos externos.
 
-**Cashflow System → Data Warehouse**
-- Exportação de dados transacionais e saldos consolidados
-- Suporte a análises históricas e preditivas
-- Integração com ferramentas de BI corporativas
+**Cashflow System → ERP Corporativo** *(não implementado)*
+- Envio periódico de dados consolidados para reconciliação financeira global
 
-**Sistema de Autenticação → Cashflow System**
-- Autenticação de usuários via SSO corporativo
-- Fornecimento de informações de perfil e permissões
-- Validação de sessões e tokens de acesso
+**Cashflow System → Data Warehouse** *(não implementado)*
+- Exportação de dados transacionais para BI e reporting estratégico
+
+**Sistema de Autenticação → Cashflow System** *(não implementado)*
+- Autenticação via SSO corporativo — atualmente substituída por API Key
 
 ---
 
