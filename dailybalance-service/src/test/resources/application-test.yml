@@ -19,6 +19,9 @@ spring:
       mode: embedded
       schema-locations: classpath:schema-test.sql
 
+  cache:
+    type: none
+
   # Desativar JPA, GCP e UserDetailsService desnecessários em testes
   autoconfigure:
     exclude:

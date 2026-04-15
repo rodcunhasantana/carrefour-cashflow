@@ -27,6 +27,12 @@ spring:
       mode: always
       schema-locations: classpath:schema.sql
 
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
+    cache-names: dailyBalances
+
   # Desabilitar JPA completamente
   autoconfigure:
     exclude:

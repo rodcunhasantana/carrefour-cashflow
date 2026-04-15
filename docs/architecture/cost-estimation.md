@@ -29,7 +29,7 @@ Cada serviço (`transaction-service`, `dailybalance-service`) roda em Cloud Run.
 
 **Configuração estimada por serviço:**
 - CPU: 1 vCPU
-- Memória: 512 MB
+- Memória: 512 MB → **ver nota de cache abaixo**
 - Concorrência máxima: 80 requisições/instância
 - Mínimo de instâncias: 0 (scale-to-zero)
 - Máximo de instâncias: 3 (proteção contra pico)
@@ -45,6 +45,15 @@ Cada serviço (`transaction-service`, `dailybalance-service`) roda em Cloud Run.
 > **Free tier Cloud Run:** 180.000 vCPU-s/mês, 360.000 GiB-s/mês, 2M requisições/mês — cobertos pelo free tier para volumes deste porte.
 
 **Estimativa Cloud Run (2 serviços):** **~$0 – $10/mês** (dentro do free tier para este volume; custo relevante começa acima de ~500 req/s sustentados).
+
+> #### Impacto do cache Caffeine (Daily Balance Service)
+> O `dailybalance-service` inclui um cache Caffeine in-process (`maximumSize=500, expireAfterWrite=10m`). Isso tem dois efeitos opostos no Cloud Run:
+>
+> **Memória (+):** O cache ocupa espaço no heap JVM. Com `maximumSize=500` entradas de `DailyBalanceDTO` (~1–2 KB cada em Java heap), o overhead é de **~1–2 MB** — irrelevante frente aos 512 MB alocados.
+>
+> **CPU/tempo de resposta (-):** Consultas `GET /balances/{date}` cacheadas eliminam o round-trip ao PostgreSQL (~5–20 ms). Menos tempo de CPU alocado por requisição = **menos vCPU-seconds consumidos**. Em termos práticos: se 60% das consultas forem cache hit, o consumo de CPU do dailybalance-service cai ~30–40%, mantendo a instância no free tier com mais folga.
+>
+> **Conclusão de custo:** O cache não adiciona nenhum custo ao Cloud Run e pode reduzir marginalmente o consumo de vCPU-seconds. **Impacto financeiro: neutro a levemente positivo.**
 
 ---
 
@@ -78,6 +87,19 @@ Dois bancos separados (`transaction-db` e `dailybalance-db`), seguindo o padrão
 > **Otimização:** Para ambientes de desenvolvimento/staging, usar instância compartilhada menor (`db-f1-micro` ou `db-g1-small`, ~$10–20/mês) e sem HA.
 
 > **Nota ADR-003:** O ADR especifica `db-custom-4-15360` (4 vCPU, 15 GB) como spec original. Para o volume estimado acima, `db-custom-2-3840` é suficiente. Se o volume crescer para >10k transações/dia, avaliar upgrade.
+
+> #### Impacto do cache Caffeine no Cloud SQL
+> O cache Caffeine no `dailybalance-service` reduz diretamente a carga sobre o `dailybalance-db`:
+>
+> **Leituras evitadas:** `SELECT * FROM daily_balances WHERE date = ?` é a query mais frequente do sistema — disparada a cada `GET /balances/{date}` e também internamente em cada evento Pub/Sub processado via `findOrCreateForDate`. Com o cache absorvendo hits repetidos na mesma data, o número de reads ao banco cai proporcionalmente à taxa de cache hit.
+>
+> **Conexões ativas:** Menos queries simultâneas = menos conexões HikariCP ocupadas ao mesmo tempo. Isso alivia o pool de conexões do `dailybalance-db` e reduz o risco de timeout no pico de fechamento de caixa.
+>
+> **Impacto no custo Cloud SQL:** O Cloud SQL é cobrado por **instância-hora** (não por query), então a redução de leituras não diminui a fatura diretamente. O benefício é **operacional**: a mesma instância `db-custom-2-3840` suporta um volume de tráfego significativamente maior antes de precisar de upgrade — adiando o eventual crescimento para `db-custom-4-7680` (~+$70/mês).
+>
+> **Conclusão de custo:** Sem impacto na fatura atual. Com crescimento de volume (>5k transações/dia), o cache pode **evitar um upgrade de instância** que custaria ~$70–140/mês adicional.
+>
+> **O `transaction-db` não é afetado** — o `transaction-service` não tem cache; suas queries são predominantemente writes (INSERT) e reads pontuais por ID, sem perfil de repetição que justifique caching.
 
 ---
 
@@ -168,6 +190,12 @@ Para armazenar as imagens Docker construídas nos Dockerfiles do projeto.
 
 ## Otimizações Recomendadas
 
+### ✅ Já implementadas
+
+| Otimização | Componente | Efeito |
+|---|---|---|
+| **Cache Caffeine in-process** | `dailybalance-service` | Elimina round-trips ao `dailybalance-db` em consultas repetidas; reduz pressão no pool de conexões HikariCP; suporta maior volume sem upgrade de instância Cloud SQL |
+
 ### Redução de custo imediata (produção)
 
 1. **Sampling de tracing:** Reduzir `management.tracing.sampling.probability` de `1.0` para `0.1` — reduz volume de logs e eventual custo de Cloud Trace sem impacto funcional.
@@ -178,7 +206,7 @@ Para armazenar as imagens Docker construídas nos Dockerfiles do projeto.
 
 ### Otimizações para crescimento de volume
 
-4. **Connection pooling externo:** Se o número de instâncias Cloud Run crescer para >5, adicionar **Cloud SQL Auth Proxy + PgBouncer** para evitar estourar o limite de conexões do PostgreSQL.
+4. **Connection pooling externo:** Se o número de instâncias Cloud Run crescer para >5, adicionar **Cloud SQL Auth Proxy + PgBouncer** para evitar estourar o limite de conexões do PostgreSQL. O cache Caffeine já mitiga parte desse risco ao reduzir o número de queries concorrentes no `dailybalance-db`.
 
 5. **Log routing:** Configurar Cloud Logging para rotear logs de DEBUG para um bucket barato (Cold Storage) separado dos logs de INFO/ERROR.
 

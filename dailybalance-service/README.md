@@ -1,6 +1,6 @@
 # Daily Balance Service
 
-Microserviço responsável pela consolidação e gerenciamento dos saldos diários no sistema **Carrefour Cashflow**. Consome eventos de transações do Google Cloud Pub/Sub, calcula saldos diários, gerencia fechamentos de período e exporta dados para o ERP corporativo.
+Microserviço responsável pela consolidação e gerenciamento dos saldos diários no sistema **Carrefour Cashflow**. Consome eventos de transações do Google Cloud Pub/Sub, calcula saldos diários, gerencia fechamentos e reabertura de períodos contábeis e disponibiliza auditoria de lançamentos por data.
 
 ## Sumário
 
@@ -33,8 +33,8 @@ Microserviço responsável pela consolidação e gerenciamento dos saldos diári
 - Consumir eventos de transações (`transaction-created`, `transaction-reversed`) do Cloud Pub/Sub
 - Calcular e atualizar saldos diários em tempo real
 - Gerenciar fechamento e reabertura de períodos contábeis
-- Exportar saldos consolidados para o ERP corporativo
-- Armazenar relatórios no Cloud Storage
+- Auditar lançamentos processados por data (`daily_balance_transactions`)
+- Garantir idempotência no processamento de eventos duplicados (`processed_events`)
 
 ---
 
@@ -45,6 +45,7 @@ Microserviço responsável pela consolidação e gerenciamento dos saldos diári
 | Java                    | 21            |
 | Spring Boot             | 3.2.4         |
 | Spring JDBC             | (BOM)         |
+| Spring Cache + Caffeine | (BOM)         |
 | PostgreSQL / Cloud SQL  | 15            |
 | Google Cloud Pub/Sub    | 1.2.8.RELEASE |
 | Resilience4j            | 2.1.0         |
@@ -127,18 +128,20 @@ Documentação completa: [`docs/api/dailybalance-service-api.md`](../docs/api/da
 | POST   | `/api/dailybalances/{date}/close`          | Fechar período                  |
 | POST   | `/api/dailybalances/{date}/reopen`         | Reabrir período                 |
 | POST   | `/api/dailybalances/{date}/recalculate`    | Recalcular saldo                |
-| POST   | `/api/dailybalances/export`                | Exportar saldos para ERP        |
+| GET    | `/api/dailybalances/{date}/transactions`   | Listar lançamentos auditados    |
 
 ### Exemplo rápido
 
 ```bash
 # Consultar saldo do dia
-curl http://localhost:8081/dailybalance-service/api/dailybalances/2026-04-14
+curl -H "X-API-Key: cashflow-local-key" \
+  http://localhost:8081/dailybalance-service/api/dailybalances/2026-04-14
 
 # Fechar período
 curl -X POST http://localhost:8081/dailybalance-service/api/dailybalances/2026-04-14/close \
+  -H "X-API-Key: cashflow-local-key" \
   -H "Content-Type: application/json" \
-  -d '{"notes": "Fechamento normal"}'
+  -d '{"closedBy": "admin"}'
 ```
 
 ---
@@ -220,8 +223,8 @@ Em produção, as métricas são coletadas pelo **Cloud Monitoring**.
 | `dailybalance.closed.count`        | Total de saldos fechados                |
 | `dailybalance.reopened.count`      | Total de saldos reabertos               |
 | `dailybalance.recalculation.count` | Total de recálculos realizados          |
-| `dailybalance.export.count`        | Total de exportações para ERP           |
 | `dailybalance.processing.time`     | Tempo médio de processamento            |
+| `cache.gets` (`dailyBalances`)     | Hits e misses do cache Caffeine         |
 | `http.server.requests.duration`    | Latência por endpoint (p50/p90/p95/p99) |
 
 ### Logs
@@ -230,7 +233,6 @@ Em produção, as métricas são coletadas pelo **Cloud Monitoring**.
 |-------------------------------------|----------|--------------------------------------|
 | `logs/dailybalance-service.log`     | 30 dias  | Log geral da aplicação               |
 | `logs/dailybalances.log`            | 90 dias  | Audit log de operações de saldo      |
-| `logs/transaction-events.log`       | 30 dias  | Log dos eventos Pub/Sub consumidos   |
 
 Campos MDC propagados em todos os logs: `traceId`, `spanId`, `balanceId`.
 
@@ -288,12 +290,15 @@ dailybalance-service/
 │   │   │   └── infrastructure/
 │   │   │       ├── adapter/
 │   │   │       │   ├── persistence/
-│   │   │       │   │   └── JdbcDailyBalanceRepository.java
+│   │   │       │   │   ├── JdbcDailyBalanceRepository.java
+│   │   │       │   │   ├── JdbcDailyBalanceTransactionRepository.java
+│   │   │       │   │   └── JdbcProcessedEventRepository.java
 │   │   │       │   └── pubsub/
 │   │   │       │       ├── TransactionEventConsumer.java
 │   │   │       │       └── event/              # TransactionEventEnvelope, *EventData records
 │   │   │       ├── config/
-│   │   │       │   └── BannerConfig.java
+│   │   │       │   ├── BannerConfig.java
+│   │   │       │   └── CacheConfig.java        # @EnableCaching — Caffeine in-process
 │   │   │       ├── logging/
 │   │   │       │   └── DailyBalanceLogger.java
 │   │   │       └── web/
@@ -311,9 +316,11 @@ dailybalance-service/
 │       │   ├── domain/model/
 │       │   │   └── DailyBalanceTest.java
 │       │   ├── application/service/
-│       │   │   └── DailyBalanceServiceImplTest.java
+│       │   │   ├── DailyBalanceServiceImplTest.java
+│       │   │   └── DailyBalanceCacheTest.java   # @SpringBootTest — valida @Cacheable/@CacheEvict
 │       │   ├── infrastructure/adapter/persistence/
-│       │   │   └── JdbcDailyBalanceRepositoryTest.java
+│       │   │   ├── JdbcDailyBalanceRepositoryTest.java
+│       │   │   └── JdbcDailyBalanceTransactionRepositoryTest.java
 │       │   └── infrastructure/web/
 │       │       └── DailyBalanceControllerTest.java
 │       └── resources/

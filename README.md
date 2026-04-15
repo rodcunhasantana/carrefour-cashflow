@@ -15,6 +15,7 @@ Dois microserviços independentes com database-per-service, comunicação assín
 |---|---|
 | Linguagem / Framework | Java 21 / Spring Boot 3.2.4 |
 | Persistência | JDBC puro + PostgreSQL (sem JPA/Hibernate) |
+| Cache | Caffeine in-process (Daily Balance Service) — `@Cacheable`/`@CacheEvict` |
 | Mensageria | Google Cloud Pub/Sub (emulador local via Docker) |
 | Segurança | Spring Security — API Key via header `X-API-Key` |
 | Tracing | Micrometer Tracing + Brave (`traceId`/`spanId` automáticos no MDC) |
@@ -188,7 +189,7 @@ curl http://localhost:8080/transaction-service/actuator/metrics
 ## Executando os testes
 
 ```bash
-# Todos os módulos (117 testes)
+# Todos os módulos (121 testes)
 mvn clean install
 
 # Por serviço
@@ -201,6 +202,7 @@ mvn test -pl dailybalance-service
 - Unitários de serviço — Mockito
 - Integração JDBC — H2 in-memory com schema idêntico ao PostgreSQL
 - Web — MockMvc standalone (sem Spring Security aplicado)
+- Cache — `@SpringBootTest` + `@MockBean` + Caffeine ativo (Daily Balance Service)
 - Smoke test de contexto — `@SpringBootTest` verifica inicialização do contexto completo
 
 ## Documentação Arquitetural

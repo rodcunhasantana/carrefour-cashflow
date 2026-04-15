@@ -34,7 +34,7 @@ Microserviço responsável pelo gerenciamento do ciclo de vida das transações 
 - Validar regras de negócio (valores, tipos, períodos contábeis)
 - Processar estornos de transações
 - Publicar eventos `transaction-created` e `transaction-reversed` no Cloud Pub/Sub
-- Gerar e armazenar relatórios no Cloud Storage
+- Bloquear lançamentos em datas com período contábil fechado
 
 ---
 
@@ -125,19 +125,19 @@ Documentação completa: [`docs/architecture/api/transaction-service-api.md`](..
 | GET    | `/api/transactions/{id}`           | Obter transação por ID      |
 | GET    | `/api/transactions`                | Listar transações           |
 | POST   | `/api/transactions/{id}/reverse`   | Estornar transação          |
-| POST   | `/api/transactions/reports`        | Gerar relatório             |
 
 ### Exemplo rápido
 
 ```bash
 # Criar uma transação de crédito
 curl -X POST http://localhost:8080/transaction-service/api/transactions \
+  -H "X-API-Key: cashflow-local-key" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "CREDIT",
     "amount": "100.00",
     "date": "2026-04-14",
-    "description": "Recebimento de taxa de serviço"
+    "description": "Recebimento de taxa de servico"
   }'
 ```
 

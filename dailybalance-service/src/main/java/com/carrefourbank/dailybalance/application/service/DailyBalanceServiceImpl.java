@@ -24,6 +24,8 @@ import com.carrefourbank.dailybalance.domain.port.ProcessedEventRepository;
 import com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +63,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
+    @Cacheable(value = "dailyBalances", key = "#date")
     @Transactional(readOnly = true)
     public DailyBalanceDTO findByDate(LocalDate date) {
         return repository.findByDate(date)
@@ -82,6 +85,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
+    @CacheEvict(value = "dailyBalances", key = "#date")
     public DailyBalanceDTO closeBalance(LocalDate date, CloseBalanceRequest request) {
         DailyBalance balance = findBalanceByDate(date);
         DailyBalance closed = balance.close();
@@ -92,6 +96,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
+    @CacheEvict(value = "dailyBalances", key = "#date")
     public DailyBalanceDTO reopenBalance(LocalDate date, ReopenBalanceRequest request) {
         DailyBalance balance = findBalanceByDate(date);
         DailyBalance reopened = balance.reopen();
@@ -101,6 +106,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
+    @CacheEvict(value = "dailyBalances", key = "#date")
     public RecalculateResponse recalculate(LocalDate date) {
         DailyBalance balance = findBalanceByDate(date);
         String prevCredits = balance.totalCredits().amount().toPlainString();
@@ -125,6 +131,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
+    @CacheEvict(value = "dailyBalances", key = "#date")
     public void applyTransaction(String eventId, String transactionId, LocalDate date, Money amount, TransactionType type) {
         if (!processedEventRepository.markAsProcessed(eventId)) {
             log.warn("Duplicate event skipped: eventId={}", eventId);

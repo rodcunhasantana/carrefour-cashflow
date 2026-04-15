@@ -229,17 +229,29 @@ Conecta cada **requisito funcional (FR) e não-funcional (NFR)** à **decisão a
 
 ---
 
+### NFR-08 — Cache in-process para saldos diários (Daily Balance Service)
+
+| Campo | Valor |
+|---|---|
+| **Descrição** | Consultas repetidas ao saldo de uma mesma data devem ser servidas do cache em vez de round-trips ao banco. O cache deve ser invalidado ao fechar, reabrir, recalcular ou aplicar transação em uma data. |
+| **ADR** | [ADR-003](architecture/decisions/003-database-strategy.md) (reduzir carga no Cloud SQL) · [ADR-001](architecture/decisions/001-microservices.md) (performance isolada por serviço) |
+| **Implementação** | `spring-boot-starter-cache` + `caffeine` em `dailybalance-service/pom.xml` · `CacheConfig.java` (`@EnableCaching`) · `@Cacheable("dailyBalances")` em `findByDate` · `@CacheEvict("dailyBalances")` em `closeBalance`, `reopenBalance`, `recalculate`, `applyTransaction` · TTL: `maximumSize=500,expireAfterWrite=10m` · cache desabilitado em testes (`spring.cache.type=none`) |
+| **Testes** | `DailyBalanceCacheTest.findByDate_hitsCache_onSecondCall` · `closeBalance_evictsCache` · `reopenBalance_evictsCache` · `applyTransaction_evictsCache` |
+
+---
+
 ## Cobertura por Camada
 
-| Camada de Teste | Classes | Métodos | FRs cobertos |
+| Camada de Teste | Classes | Métodos | FRs/NFRs cobertos |
 |---|---|---|---|
 | Domínio (JUnit puro) | 2 | 23 | FR-01, FR-02, FR-03, FR-06, FR-07, FR-08, FR-09, NFR-07 |
 | Serviço (Mockito) | 2 | 21 | FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12 |
 | Web (MockMvc) | 2 | 16 | FR-01, FR-02, FR-03, FR-04, FR-08, FR-10, FR-11 |
 | Persistência JDBC (H2) | 3 | 21 | FR-01, FR-03, FR-04, FR-06, FR-10, FR-11, FR-12, NFR-06 |
-| **Total** | **9** | **81** | |
+| Cache (`@SpringBootTest` + `@MockBean`) | 1 | 4 | NFR-08 |
+| **Total** | **10** | **85** | |
 
-> **Nota:** O total de 81 métodos considera a soma das camadas; o número real de testes únicos é 65 (alguns testes cobrem múltiplos FRs).
+> **Nota:** O total de 85 métodos considera a soma das camadas; o número real de testes únicos é 69.
 
 ---
 

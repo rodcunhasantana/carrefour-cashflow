@@ -29,7 +29,7 @@ C4Component
 
         Component(domainModel, "Domain Model", "Java (módulo common)", "Transaction, Money, TransactionType, TransactionStatus, PeriodClosedException")
 
-        Component(exceptionHandler, "GlobalExceptionHandler", "Spring ControllerAdvice", "Converte exceções de domínio em respostas HTTP padronizadas")
+        Component(exceptionHandler, "GlobalExceptionHandler", "Spring ControllerAdvice", "Converte exceções de domínio em respostas HTTP padronizadas; NoResourceFoundException → 404")
 
         Component(dlqMonitor, "DLQ Monitor", "Spring Service", "Monitora transaction-events-dlq e registra alertas em log")
     }
@@ -97,11 +97,12 @@ C4Component
     title Daily Balance Service - Diagrama de Componentes
 
     Container_Boundary(dailyBalanceService, "Daily Balance Service (Cloud Run / porta 8081)") {
-        Component(balanceController, "Balance Controller", "Spring MVC REST Controller", "Expõe API REST: GET /balances/{date}, POST /balances/{date}/close, POST /balances/{date}/reopen, GET /balances/{date}/transactions")
+        Component(balanceController, "Balance Controller", "Spring MVC REST Controller", "Expõe API REST: GET /dailybalances/{date}, POST /dailybalances/{date}/close, POST /dailybalances/{date}/reopen, GET /dailybalances/{date}/transactions")
 
         Component(apiKeyFilter, "ApiKeyAuthFilter", "OncePerRequestFilter (Spring Security)", "Valida X-API-Key; libera /actuator, /swagger-ui, /v3/api-docs sem autenticação")
 
-        Component(balanceAppService, "DailyBalanceService", "Application Service", "Orquestra consulta, fechamento, reabertura e auditoria de saldos")
+        Component(balanceAppService, "DailyBalanceService", "Application Service", "Orquestra consulta, fechamento, reabertura e auditoria de saldos; @Cacheable em findByDate, @CacheEvict em mutações")
+        Component(caffeineCache, "Caffeine Cache", "Spring Cache (in-process)", "Cache de DailyBalance por data — maximumSize=500, TTL=10m; evitado em mutações via @CacheEvict")
 
         Component(balanceRepository, "DailyBalanceRepository", "JDBC (PostgreSQL)", "Persiste e consulta daily_balances")
 
@@ -115,7 +116,7 @@ C4Component
 
         Component(domainModel, "Domain Model", "Java (módulo common)", "DailyBalance, Money, BalanceStatus, BalanceAlreadyClosedException, BalanceAlreadyOpenException")
 
-        Component(exceptionHandler, "GlobalExceptionHandler", "Spring ControllerAdvice", "Converte exceções de domínio em respostas HTTP padronizadas")
+        Component(exceptionHandler, "GlobalExceptionHandler", "Spring ControllerAdvice", "Converte exceções de domínio em respostas HTTP padronizadas; NoResourceFoundException → 404")
 
         Component(dlqMonitor, "DLQ Monitor", "Spring Service", "Monitora period-events-dlq e registra alertas em log")
     }
@@ -127,7 +128,8 @@ C4Component
     Rel(apiKeyFilter, balanceController, "Permite requisições autenticadas para", "filtro HTTP")
     Rel(balanceController, balanceAppService, "Delega para", "method calls")
     Rel(balanceController, exceptionHandler, "Erros tratados por", "Spring exceptions")
-    Rel(balanceAppService, balanceRepository, "Usa", "method calls")
+    Rel(balanceAppService, caffeineCache, "Consultas cacheadas via", "Spring Cache AOP")
+    Rel(balanceAppService, balanceRepository, "Usa (cache miss)", "method calls")
     Rel(balanceAppService, auditRepository, "Persiste lançamentos auditados via", "method calls")
     Rel(balanceAppService, periodEventPublisher, "Publica eventos de período via", "method calls")
     Rel(balanceAppService, domainModel, "Usa entidades de", "method calls")
@@ -146,7 +148,7 @@ C4Component
 ### Componentes do Daily Balance Service
 
 **Balance Controller**
-- Endpoints: `GET /api/balances/{date}`, `POST /api/balances/{date}/close`, `POST /api/balances/{date}/reopen`, `GET /api/balances/{date}/transactions`
+- Endpoints: `GET /api/dailybalances/{date}`, `GET /api/dailybalances`, `POST /api/dailybalances/{date}/close`, `POST /api/dailybalances/{date}/reopen`, `POST /api/dailybalances/{date}/recalculate`, `GET /api/dailybalances/{date}/transactions`
 
 **ApiKeyAuthFilter**
 - Idêntico ao Transaction Service. Usa `contains()` no `shouldNotFilter()` pelo mesmo motivo (context-path `/dailybalance-service` no URI).
@@ -154,7 +156,9 @@ C4Component
 **DailyBalanceService (Application Service)**
 - Fecha período: persiste `CLOSED` + publica `PeriodClosedEvent`.
 - Reabre período: persiste `OPEN` + publica `PeriodReopenedEvent`.
-- Lança `BalanceAlreadyClosedException` (HTTP 422) se tentar fechar já fechado; `BalanceAlreadyOpenException` se tentar reabrir já aberto.
+- Lança `BalanceAlreadyClosedException` (HTTP 409) se tentar fechar já fechado; `BalanceAlreadyOpenException` se tentar reabrir já aberto.
+- `findByDate` anotado com `@Cacheable("dailyBalances")` — resultado servido do Caffeine em cache hits.
+- `closeBalance`, `reopenBalance`, `applyTransaction`, `recalculate` anotados com `@CacheEvict("dailyBalances")` — garantem consistência após mutações.
 
 **TransactionEventConsumer**
 - Subscription: `dailybalance-transaction-subscription` (tópico `transaction-events`).
@@ -172,7 +176,8 @@ C4Component
 | **Adaptadores Primários** | `TransactionController`, `PeriodEventConsumer` | `BalanceController`, `TransactionEventConsumer` |
 | **Aplicação** | `TransactionService` | `DailyBalanceService` |
 | **Portas (interfaces)** | `TransactionRepository`, `ClosedPeriodRepository`, `TransactionEventPublisher` | `DailyBalanceRepository`, `ProcessedEventRepository`, `PeriodEventPublisher` |
-| **Adaptadores Secundários** | `JdbcTransactionRepository`, `JdbcClosedPeriodRepository`, `PubSubTransactionEventPublisher` | `JdbcDailyBalanceRepository`, `JdbcProcessedEventRepository`, `PubSubPeriodEventPublisher` |
+| **Adaptadores Secundários** | `JdbcTransactionRepository`, `JdbcClosedPeriodRepository`, `PubSubTransactionEventPublisher` | `JdbcDailyBalanceRepository`, `JdbcDailyBalanceTransactionRepository`, `JdbcProcessedEventRepository`, `PubSubPeriodEventPublisher` |
+| **Cache** | — | `CacheConfig` (`@EnableCaching`), Caffeine `dailyBalances` |
 | **Domínio** | `Transaction`, `Money`, `TransactionType`, `TransactionStatus` | `DailyBalance`, `Money`, `BalanceStatus` |
 
 ---

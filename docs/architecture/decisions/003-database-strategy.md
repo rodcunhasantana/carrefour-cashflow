@@ -134,20 +134,30 @@ Além disso, manteremos bancos de dados separados para cada microsserviço, segu
 
 ### Cloud SQL para PostgreSQL
 
-- Versão: PostgreSQL 14
+- Versão: PostgreSQL 15
 - Tipo de máquina:
-   - Produção: db-custom-4-15360 (4 vCPUs, 15GB RAM)
-   - Outros ambientes: db-custom-2-7680 (2 vCPUs, 7.5GB RAM)
+   - Produção: `db-custom-2-3840` (2 vCPUs, 3,75 GB RAM) — suficiente para ~2.000 transações/dia
+   - Outros ambientes: `db-f1-micro` ou `db-g1-small` (~$10–20/mês, sem HA)
 - Armazenamento:
-   - Produção: 100GB, SSD
-   - Outros ambientes: 20GB, SSD
-- Alta disponibilidade: Habilitada para produção
+   - Produção: SSD 20 GB (auto-expand habilitado)
+   - Outros ambientes: 10 GB, SSD
+- Alta disponibilidade: Habilitada para produção (réplica standby em zona diferente)
 - Backups:
-   - Diários automáticos
+   - Automáticos diários
    - 7 dias de retenção
    - Point-in-time recovery habilitado
 - Manutenção: Janela programada fora do horário comercial
 - Networking: Private IP via VPC peering
+
+### Cache in-process (Daily Balance Service)
+
+Para reduzir a carga no `dailybalance-db`, o `dailybalance-service` implementa um cache Caffeine in-process via Spring Cache:
+
+- **Escopo**: apenas `DailyBalanceServiceImpl.findByDate()` — leitura de saldo por data
+- **Configuração**: `maximumSize=500, expireAfterWrite=10m`
+- **Invalidação**: `@CacheEvict` em `closeBalance`, `reopenBalance`, `applyTransaction`, `recalculate`
+- **Efeito**: reduz o número de `SELECT` no `dailybalance-db`; a mesma instância `db-custom-2-3840` suporta volume significativamente maior antes de necessitar upgrade
+- O `transaction-db` não é afetado — o `transaction-service` não tem cache
 
 ## Consequências
 

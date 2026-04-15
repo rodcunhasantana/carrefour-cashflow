@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 
@@ -47,6 +48,12 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse(ex.getMessage());
         return error("VALIDATION_ERROR", message);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNoResourceFound(NoResourceFoundException ex) {
+        return error("RESOURCE_NOT_FOUND", ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

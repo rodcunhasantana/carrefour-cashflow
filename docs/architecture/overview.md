@@ -93,6 +93,7 @@ Isso permite:
 - **Linguagem**: Java 21
 - **Framework**: Spring Boot 3.2.4
 - **Persistência**: JDBC direto com PostgreSQL (sem JPA/Hibernate)
+- **Cache**: Caffeine (in-process) no Daily Balance Service — `@Cacheable`/`@CacheEvict` via Spring Cache abstraction
 - **Segurança**: Spring Security — API Key via header `X-API-Key` (ver [ADR-006](decisions/006-security.md))
 - **Tracing**: Micrometer Tracing + Brave — `traceId`/`spanId` automáticos no MDC
 - **API**: REST com OpenAPI — Swagger UI disponível em runtime (`/swagger-ui.html` em cada serviço)
