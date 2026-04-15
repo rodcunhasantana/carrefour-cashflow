@@ -1,92 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Propriedades que podem ser usadas no arquivo de configuração -->
     <property name="LOG_PATH" value="${LOG_PATH:-./logs}" />
     <property name="LOG_FILE" value="${LOG_FILE:-dailybalance-service}" />
-
-    <!-- Incluir informações da aplicação e ambiente -->
     <property name="APP_NAME" value="${spring.application.name:-dailybalance-service}" />
-    <property name="PROFILE" value="${spring.profiles.active:-unknown}" />
 
-    <!-- Padrão para console com cores -->
+    <!-- Console: sempre ativo -->
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [${APP_NAME},%X{traceId:-},%X{spanId:-},%X{balanceId:-}] [%thread] %cyan(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Padrão para arquivo de log geral -->
-    <appender name="File" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/${LOG_FILE}.log</file>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [${APP_NAME},%X{traceId:-},%X{spanId:-},%X{balanceId:-}] [%thread] %logger{36} - %msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/archived/${LOG_FILE}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>3GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
-
-    <!-- Arquivo de log específico para saldos diários -->
-    <appender name="DailyBalanceLogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/dailybalances.log</file>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{balanceId:-}] %msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/archived/dailybalances-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>90</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
-
-    <!-- Arquivo de log específico para eventos de transação consumidos -->
-    <appender name="TransactionEventsLogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/transaction-events.log</file>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{transactionId:-},%X{balanceId:-}] %msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/archived/transaction-events-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>3GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
-
-    <!-- Configuração de Log para produção -->
+    <!-- File appenders: apenas em produção (onde /app/logs existe e tem permissão) -->
     <springProfile name="prod">
+        <appender name="File" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${LOG_FILE}.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [${APP_NAME},%X{traceId:-},%X{spanId:-},%X{balanceId:-}] [%thread] %logger{36} - %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/${LOG_FILE}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>3GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <appender name="DailyBalanceLogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/dailybalances.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{balanceId:-}] %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/dailybalances-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>5GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <appender name="TransactionEventsLogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/transaction-events.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{transactionId:-},%X{balanceId:-}] %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/archived/transaction-events-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>3GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <logger name="com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger" level="INFO" additivity="false">
+            <appender-ref ref="DailyBalanceLogFile" />
+            <appender-ref ref="Console" />
+        </logger>
+
+        <logger name="com.carrefourbank.dailybalance.infrastructure.adapter.pubsub.TransactionEventConsumer" level="INFO" additivity="false">
+            <appender-ref ref="TransactionEventsLogFile" />
+            <appender-ref ref="Console" />
+        </logger>
+
         <root level="WARN">
             <appender-ref ref="Console" />
             <appender-ref ref="File" />
         </root>
     </springProfile>
 
-    <!-- Configuração para ambientes não-prod -->
+    <!-- dev / default: apenas console -->
     <springProfile name="!prod">
-        <!-- Ajustes específicos para debug -->
         <logger name="org.springframework.jdbc" level="INFO" />
         <logger name="com.carrefourbank" level="DEBUG" />
+        <logger name="com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger" level="INFO" additivity="false">
+            <appender-ref ref="Console" />
+        </logger>
+        <logger name="com.carrefourbank.dailybalance.infrastructure.adapter.pubsub.TransactionEventConsumer" level="INFO" additivity="false">
+            <appender-ref ref="Console" />
+        </logger>
+
+        <root level="INFO">
+            <appender-ref ref="Console" />
+        </root>
     </springProfile>
-
-    <!-- Logger específico para saldos diários -->
-    <logger name="com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger" level="INFO" additivity="false">
-        <appender-ref ref="DailyBalanceLogFile" />
-        <appender-ref ref="Console" />
-    </logger>
-
-    <!-- Logger específico para eventos de transação consumidos -->
-    <logger name="com.carrefourbank.dailybalance.infrastructure.adapter.pubsub.TransactionEventConsumer" level="INFO" additivity="false">
-        <appender-ref ref="TransactionEventsLogFile" />
-        <appender-ref ref="Console" />
-    </logger>
-
-    <!-- Nível de log padrão -->
-    <root level="INFO">
-        <appender-ref ref="Console" />
-        <appender-ref ref="File" />
-    </root>
 </configuration>

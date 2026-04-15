@@ -136,6 +136,7 @@ services:
       DB_PASSWORD: transaction_password
       GCP_PROJECT_ID: local-project
       PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      APP_API_KEY: cashflow-local-key
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/transaction-service/actuator/health || exit 1"]
       interval: 15s
@@ -164,6 +165,7 @@ services:
       DB_PASSWORD: dailybalance_password
       GCP_PROJECT_ID: local-project
       PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      APP_API_KEY: cashflow-local-key
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/dailybalance-service/actuator/health || exit 1"]
       interval: 15s

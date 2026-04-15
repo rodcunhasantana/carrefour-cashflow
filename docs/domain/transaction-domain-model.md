@@ -1,6 +1,6 @@
 # Modelo de Domínio - Transaction Service
 
-Este documento descreve o núcleo do **Transaction Service**, detalhando as entidades, objetos de valor e as regras de negócio que garantem a integridade dos lançamentos financeiros.
+Este documento descreve o núcleo do **Transaction Service**, detalhando as entidades, objetos de valor, regras de negócio e tabelas de suporte que garantem a integridade dos lançamentos financeiros.
 
 ---
 
@@ -16,14 +16,14 @@ Representa um lançamento financeiro (débito ou crédito). É o **Aggregate Roo
 | `amount` | `Money` | Valor monetário (encapsulado em VO). |
 | `date` | `LocalDate` | Data em que o lançamento ocorreu. |
 | `description` | `String` | Texto explicativo do lançamento. |
-| `status` | `TransactionStatus` | Estado atual (`PENDING`, `COMPLETED`, etc). |
+| `status` | `TransactionStatus` | Estado atual (`PENDING`, `COMPLETED`, `CANCELED`, `REVERSED`). |
 | `createdAt` | `LocalDateTime` | Timestamp de auditoria da criação. |
 
 #### **Regras de Negócio de Transaction**
-* **Sinalização por Tipo:** * Transações de **Crédito** devem obrigatoriamente possuir valor positivo.
-    * Transações de **Débito** devem obrigatoriamente possuir valor negativo.
-* **Imutabilidade:** Uma vez criada, uma transação não pode ser editada. Erros devem ser corrigidos via **Estorno (Reversal)**, gerando um novo registro compensatório.
-* **Integridade:** A descrição é um campo obrigatório e não pode ser nulo ou vazio.
+- **Sinalização por Tipo:** Transações de **Crédito** possuem valor positivo; transações de **Débito** possuem valor negativo.
+- **Imutabilidade:** Uma vez criada, uma transação não pode ser editada. Erros são corrigidos via **Estorno (Reversal)**, que gera um novo registro compensatório com tipo e valor invertidos.
+- **Bloqueio por Período Fechado:** Não é possível criar lançamentos para uma data cujo período esteja fechado. Tentativas retornam `HTTP 422 Unprocessable Entity` com `PeriodClosedException`.
+- **Integridade:** A descrição é campo obrigatório e não pode ser nula ou vazia.
 
 ---
 
@@ -31,41 +31,89 @@ Representa um lançamento financeiro (débito ou crédito). É o **Aggregate Roo
 
 ### `Money`
 Objeto de valor que encapsula a lógica financeira, evitando erros de arredondamento com `double` ou `float`.
-* **Atributos:** `amount` (BigDecimal) e `currency` (Enum).
-* **Comportamentos:** Soma de valores, inversão de sinal (negate) e validação de sinal (positivo/negativo).
+- **Atributos:** `amount` (`BigDecimal`) e `currency` (Enum).
+- **Comportamentos:** Soma de valores, inversão de sinal (`negate`) e validação de sinal (positivo/negativo).
 
 ### Enums
-* **`TransactionType`**: Define a natureza do fluxo (`CREDIT`, `DEBIT`).
-* **`TransactionStatus`**: Controla o ciclo de vida (`PENDING`, `COMPLETED`, `CANCELED`, `REVERSED`).
-* **`Currency`**: Moedas suportadas pelo sistema (`BRL`, `USD`, `EUR`).
+- **`TransactionType`**: `CREDIT`, `DEBIT`.
+- **`TransactionStatus`**: `PENDING`, `COMPLETED`, `CANCELED`, `REVERSED`.
+- **`Currency`**: Moedas suportadas (`BRL`, `USD`, `EUR`).
 
 ---
 
 ## 3. Serviços e Repositórios
 
-### `TransactionService` (Domain Service)
-Orquestra a lógica que não pertence naturalmente a uma única entidade:
-* Executa a fábrica de criação de transações.
-* Gerencia a lógica de busca e filtros por período.
-* Coordena o processo de estorno vinculando a nova transação à original.
+### `TransactionService` (Application Service)
+Orquestra a lógica de criação, consulta e estorno:
+- Verifica se a data está em período fechado antes de criar o lançamento (`ClosedPeriodRepository`).
+- Executa a fábrica de criação de transações.
+- Coordena o processo de estorno: inverte o tipo e nega o valor da transação original.
+- Publica `TransactionCreatedEvent` ou `TransactionReversedEvent` via `TransactionEventPublisher`.
 
 ### `TransactionRepository`
 Interface de abstração para persistência (PostgreSQL):
-* `save(Transaction)`: Persiste o estado atual.
-* `findByDateBetween(...)`: Recupera transações para relatórios ou consolidação.
+- `save(Transaction)`: Persiste o estado atual.
+- `findById(UUID)`: Busca por ID.
+- `findByDateBetween(...)`: Recupera transações para relatórios ou consolidação.
+
+### `ClosedPeriodRepository`
+Interface para verificação e gestão de períodos fechados:
+- `existsByDate(LocalDate)`: Retorna `true` se a data está com período fechado.
+- `save(LocalDate)`: Registra uma data como fechada (chamado ao consumir evento `period-closed`).
+- `deleteByDate(LocalDate)`: Remove o bloqueio (chamado ao consumir evento `period-reopened`).
 
 ---
 
-## 4. Eventos de Domínio
+## 4. Tabelas do Banco de Dados
 
-Os eventos permitem que o sistema seja extensível e que o **Daily Balance Service** seja atualizado de forma assíncrona.
+### `transactions`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID (PK) | Identificador único |
+| `type` | VARCHAR | `CREDIT` ou `DEBIT` |
+| `amount` | NUMERIC | Valor (positivo para crédito, negativo para débito) |
+| `currency` | VARCHAR | `BRL`, `USD`, `EUR` |
+| `date` | DATE | Data do lançamento |
+| `description` | TEXT | Descrição do lançamento |
+| `status` | VARCHAR | `PENDING`, `COMPLETED`, `CANCELED`, `REVERSED` |
+| `reversal_of` | UUID (FK) | ID da transação original (apenas para estornos) |
+| `created_at` | TIMESTAMP | Data/hora de criação |
 
-* **`TransactionCreatedEvent`**: Contém o ID, valor, tipo e data da nova transação.
-* **`TransactionReversedEvent`**: Contém o ID da transação original e o ID da transação de estorno, além do motivo.
+### `closed_periods`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `date` | DATE (PK) | Data com período fechado |
+| `closed_at` | TIMESTAMP | Data/hora em que o período foi fechado |
+
+Populada automaticamente ao consumir eventos `period-closed` do tópico `period-events`. Deletada ao consumir eventos `period-reopened`.
 
 ---
 
-## 5. Diagrama de Classes Simplificado
+## 5. Eventos de Domínio
+
+### Publicados (tópico `transaction-events`)
+
+- **`TransactionCreatedEvent`**: ID, tipo, valor, data e status da nova transação.
+- **`TransactionReversedEvent`**: ID da transação original, ID do estorno e motivo.
+
+### Consumidos (tópico `period-events`, subscription `transaction-period-subscription`)
+
+- **`PeriodClosedEvent`**: Data do período fechado → insere em `closed_periods`.
+- **`PeriodReopenedEvent`**: Data do período reaberto → remove de `closed_periods`.
+
+---
+
+## 6. Exceções de Domínio
+
+| Exceção | HTTP | Quando é lançada |
+|---|---|---|
+| `PeriodClosedException` | 422 | Tentativa de criar lançamento em data com período fechado |
+| `TransactionNotFoundException` | 404 | Transação não encontrada por ID |
+| `ValidationException` | 400 | Dados inválidos na requisição |
+
+---
+
+## 7. Diagrama de Classes Simplificado
 
 ```text
 +----------------+       +----------------+       +-----------------+
@@ -75,24 +123,25 @@ Os eventos permitem que o sistema seja extensível e que o **Daily Balance Servi
 | - type: Type   |<>---->| - currency: Cur|       | DEBIT           |
 | - amount: Money|       +----------------+       +-----------------+
 | - date: Date   |
-| - description  |       +-----------------+
-| - createdAt    |       |TransactionStatus|
-| - status       |       +-----------------+
-+----------------+       | PENDING         |
-| + validate()   |       | COMPLETED       |
-| + createRev...()|      | CANCELED        |
-+----------------+       | REVERSED        |
-        ^                +-----------------+
-        |
+| - description  |       +-----------------+      +----------------+
+| - createdAt    |       |TransactionStatus|      | ClosedPeriod   |
+| - status       |       +-----------------+      +----------------+
+| - reversalOf   |       | PENDING         |      | - date: Date   |
++----------------+       | COMPLETED       |      | - closedAt     |
+| + validate()   |       | CANCELED        |      +----------------+
+| + createRev...()|      | REVERSED        |
++----------------+       +-----------------+
+        ^
         |
 +----------------------+
 | Reversal Transaction |
+| (type invertido,     |
+|  amount negado)      |
 +----------------------+
 ```
+
 ---
 
 ## Conclusão
 
-O modelo de domínio do Transaction Service foi projetado para ser resiliente a falhas humanas através do uso de imutabilidade e para ser altamente auditável.
-
-A utilização de Value Objects para a representação de valores monetários e a implementação de Eventos de Domínio para a comunicação entre serviços garantem que o sistema mantenha a precisão financeira e a escalabilidade técnica necessárias para uma operação de fluxo de caixa robusta.
+O modelo de domínio do Transaction Service foi projetado para ser resiliente a falhas humanas através do uso de imutabilidade e para ser altamente auditável. O mecanismo de `closed_periods` garante consistência com o Daily Balance Service de forma desacoplada, via eventos assíncronos. A utilização de Value Objects para valores monetários e eventos de domínio para comunicação entre serviços garantem precisão financeira e escalabilidade técnica.

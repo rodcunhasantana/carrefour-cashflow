@@ -22,9 +22,7 @@ O Carrefour Cashflow adota uma **arquitetura de microsserviços**, implementada 
 
 O sistema interage com diferentes atores e sistemas externos:
 
-![Diagrama de Contexto](../diagrams/context_diagram.png)
-
-*Para mais detalhes, consulte o [Diagrama de Contexto C4](c4/context.md)*
+[Diagrama de Contexto C4](c4/context.md)
 
 ### Principais Componentes
 
@@ -95,6 +93,8 @@ Isso permite:
 - **Linguagem**: Java 21
 - **Framework**: Spring Boot 3.2.4
 - **Persistência**: JDBC direto com PostgreSQL (sem JPA/Hibernate)
+- **Segurança**: Spring Security — API Key via header `X-API-Key` (ver [ADR-006](decisions/006-security.md))
+- **Tracing**: Micrometer Tracing + Brave — `traceId`/`spanId` automáticos no MDC
 - **API**: REST com OpenAPI — Swagger UI disponível em runtime (`/swagger-ui.html` em cada serviço)
 - **Contêinerização**: Docker
 
@@ -115,16 +115,20 @@ Isso permite:
 
 ### Segurança
 
-- Identity Platform para autenticação e autorização
-- Encriptação em trânsito e em repouso
-- Secret Manager para gerenciar credenciais
+- **API Key via `X-API-Key`**: todos os endpoints `/api/**` exigem o header. Implementado como `OncePerRequestFilter` (Spring Security). Ver [ADR-006](decisions/006-security.md).
+- Endpoints públicos: `/actuator/**`, `/swagger-ui/**`, `/v3/api-docs/**`
+- Chave configurada via `APP_API_KEY` (Secret Manager em produção)
+- Encriptação em trânsito (HTTPS/TLS) e em repouso (Cloud SQL)
 - Segmentação de rede com VPC
 
 ### Observabilidade
 
-- Logging estruturado
-- Métricas e traces via Cloud Monitoring
-- Dashboards para visibilidade operacional
+- **Logging estruturado com MDC**: formato `[appName, traceId, spanId, domainId]`
+- **Micrometer Tracing (Brave)**: `traceId` e `spanId` gerados automaticamente por requisição HTTP — sem exportador externo
+- **Campos de domínio**: `transactionId` populado pelo `TransactionLogger`; `balanceId` pelo `DailyBalanceLogger`
+- **Métricas e Prometheus**: Spring Actuator em `/actuator/metrics` e `/actuator/prometheus`
+- **Resilience4j**: Circuit Breaker e Retry nos publishers de eventos Pub/Sub
+- Em produção: Cloud Monitoring + Cloud Logging recebem os traces via OTLP
 
 ### Resiliência
 
