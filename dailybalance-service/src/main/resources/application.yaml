@@ -65,6 +65,13 @@ info:
     java:
       version: ${java.version}
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+  api-docs:
+    path: /v3/api-docs
+
 # Configuração do Circuit Breaker com Resilience4j
 resilience4j:
   circuitbreaker:

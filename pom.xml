@@ -26,6 +26,7 @@
         <spring-boot.version>3.2.4</spring-boot.version>
         <resilience4j.version>2.1.0</resilience4j.version>
         <spring-cloud-gcp.version>5.1.2</spring-cloud-gcp.version>
+        <springdoc.version>2.3.0</springdoc.version>
     </properties>
 
     <!-- Gerencia versões de dependências sem adicioná-las ao projeto -->
@@ -59,6 +60,13 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
                 <version>${spring-cloud-gcp.version}</version>
+            </dependency>
+
+            <!-- SpringDoc OpenAPI (Swagger UI em runtime) -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

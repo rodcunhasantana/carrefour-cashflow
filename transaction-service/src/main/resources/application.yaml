@@ -65,6 +65,13 @@ management:
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+  api-docs:
+    path: /v3/api-docs
+
 resilience4j:
   circuitbreaker:
     instances:
