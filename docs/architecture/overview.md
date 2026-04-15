@@ -162,7 +162,7 @@ Resumo dos principais itens:
 - [Diagrama de Contêineres (C4)](c4/containers.md)
 - [Diagrama de Componentes (C4)](c4/components.md)
 - [Eventos de Domínio](../domain/domain-events.md)
-- [Registros de Decisões Arquiteturais (ADRs)](decisions/)
+- [Registros de Decisões Arquiteturais (ADRs)](decisions/) — incluindo [ADR-007: Arquitetura de Transição](decisions/007-transition-architecture.md) (Strangler Fig para migração de legado)
 - [Matriz de Rastreabilidade](../traceability.md)
 - [Estimativa de Custo GCP](cost-estimation.md)
 - [Roadmap de Evoluções](../roadmap.md)

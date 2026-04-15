@@ -215,6 +215,7 @@ mvn test -pl dailybalance-service
 | [ADR-004](docs/architecture/decisions/004-testing-strategy.md) | Estratégia de testes |
 | [ADR-005](docs/architecture/decisions/005-cloud-provider-selection.md) | GCP como cloud provider |
 | [ADR-006](docs/architecture/decisions/006-security.md) | Autenticação por API Key |
+| [ADR-007](docs/architecture/decisions/007-transition-architecture.md) | Arquitetura de Transição — migração de legado (Strangler Fig) |
 | [Visão Geral da Arquitetura](docs/architecture/overview.md) | Padrões, stack e decisões |
 | [C4 — Contêineres](docs/architecture/c4/containers.md) | Diagrama de contêineres |
 | [C4 — Componentes](docs/architecture/c4/components.md) | Componentes internos de cada serviço |
