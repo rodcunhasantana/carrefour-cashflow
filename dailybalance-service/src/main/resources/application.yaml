@@ -65,6 +65,13 @@ info:
     java:
       version: ${java.version}
 
+pubsub:
+  subscriptions:
+    transaction-events: dailybalance-transaction-subscription
+  dlq:
+    transaction-events: transaction-events-dlq-sub
+    max-delivery-attempts: 5
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -51,6 +51,7 @@ public class PeriodClosedEventConsumer {
                 message.ack();
             } catch (Exception e) {
                 log.error("Failed to process period-closed event: {}", e.getMessage(), e);
+                message.nack();
             }
         });
         log.info("Subscribed to Pub/Sub subscription: {}", SUBSCRIPTION);

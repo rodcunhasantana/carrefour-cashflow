@@ -45,6 +45,7 @@ public class TransactionEventConsumer {
                 log.debug("Processed event: eventId={} type={}", envelope.eventId(), envelope.eventType());
             } catch (Exception e) {
                 log.error("Failed to process event from subscription {}: {}", SUBSCRIPTION, e.getMessage(), e);
+                message.nack();
             }
         });
         log.info("Subscribed to Pub/Sub subscription: {}", SUBSCRIPTION);

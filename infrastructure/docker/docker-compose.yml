@@ -66,18 +66,52 @@ services:
       - sh
       - -c
       - |
+        # ── Tópicos principais ────────────────────────────────────────────────
         echo "Criando tópico transaction-events..."
         curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/transaction-events"
-        echo "Criando subscription dailybalance-transaction-subscription..."
-        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/dailybalance-transaction-subscription" \
-          -H "Content-Type: application/json" \
-          -d '{"topic":"projects/local-project/topics/transaction-events"}'
         echo "Criando tópico period-events..."
         curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/period-events"
-        echo "Criando subscription transaction-period-subscription..."
+
+        # ── Tópicos DLQ (Dead Letter) ─────────────────────────────────────────
+        echo "Criando tópico DLQ transaction-events-dlq..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/transaction-events-dlq"
+        echo "Criando tópico DLQ period-events-dlq..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/period-events-dlq"
+
+        # ── Subscriptions principais com deadLetterPolicy ─────────────────────
+        echo "Criando subscription dailybalance-transaction-subscription (com DLQ)..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/dailybalance-transaction-subscription" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "topic": "projects/local-project/topics/transaction-events",
+            "ackDeadlineSeconds": 30,
+            "deadLetterPolicy": {
+              "deadLetterTopic": "projects/local-project/topics/transaction-events-dlq",
+              "maxDeliveryAttempts": 5
+            }
+          }'
+        echo "Criando subscription transaction-period-subscription (com DLQ)..."
         curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/transaction-period-subscription" \
           -H "Content-Type: application/json" \
-          -d '{"topic":"projects/local-project/topics/period-events"}'
+          -d '{
+            "topic": "projects/local-project/topics/period-events",
+            "ackDeadlineSeconds": 30,
+            "deadLetterPolicy": {
+              "deadLetterTopic": "projects/local-project/topics/period-events-dlq",
+              "maxDeliveryAttempts": 5
+            }
+          }'
+
+        # ── Subscriptions de monitoramento das DLQs ───────────────────────────
+        echo "Criando subscription transaction-events-dlq-sub..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/transaction-events-dlq-sub" \
+          -H "Content-Type: application/json" \
+          -d '{"topic":"projects/local-project/topics/transaction-events-dlq"}'
+        echo "Criando subscription period-events-dlq-sub..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/period-events-dlq-sub" \
+          -H "Content-Type: application/json" \
+          -d '{"topic":"projects/local-project/topics/period-events-dlq"}'
+
         echo "Setup concluído."
 
   # ─── Transaction Service ─────────────────────────────────────────────────────

@@ -77,7 +77,6 @@ Com os serviços rodando:
 
 ### Executando os testes
 
-```bash
 # Todos os módulos
 mvn clean install
 
