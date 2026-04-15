@@ -221,3 +221,4 @@ mvn test -pl dailybalance-service
 | [Eventos de Domínio](docs/domain/domain-events.md) | Contratos de eventos Pub/Sub |
 | [Matriz de Rastreabilidade](docs/traceability.md) | FR/NFR → ADR → implementação → testes |
 | [Estimativa de Custo GCP](docs/architecture/cost-estimation.md) | Custos por componente em produção |
+| [Roadmap de Evoluções](docs/roadmap.md) | CI/CD, Flyway, TestContainers, relatórios, IA e mais |

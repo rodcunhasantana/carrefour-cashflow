@@ -145,10 +145,17 @@ Isso permite:
 
 ## Próximos Passos e Evolução
 
-- Implementação de serviço de relatórios avançados
-- Adição de análises preditivas com BigQuery e ML
-- Expansão da cobertura de testes automatizados
-- Implementação de feature flags para lançamentos controlados
+Evoluções mapeadas com contexto técnico, esforço e dependências estão detalhadas em **[docs/roadmap.md](../roadmap.md)**.
+
+Resumo dos principais itens:
+
+| Evolução | Descrição |
+|---|---|
+| Cloud Build (CI/CD) | Deploys automáticos, rastreáveis e sem intervenção manual |
+| Relatórios financeiros | Exportação de consolidado por período diretamente pela API |
+| Flyway | Evolução do banco sem downtime e com histórico auditável |
+| Cloud Monitoring + Trace | Detecção proativa de problemas e rastreabilidade financeira |
+| IA no desenvolvimento | Maior velocidade de entrega com menor risco de regressão |
 
 ## Documentação Relacionada
 
@@ -156,4 +163,7 @@ Isso permite:
 - [Diagrama de Componentes (C4)](c4/components.md)
 - [Eventos de Domínio](../domain/domain-events.md)
 - [Registros de Decisões Arquiteturais (ADRs)](decisions/)
+- [Matriz de Rastreabilidade](../traceability.md)
+- [Estimativa de Custo GCP](cost-estimation.md)
+- [Roadmap de Evoluções](../roadmap.md)
 - **API (runtime)**: Swagger UI disponível em `http://localhost:8080/transaction-service/swagger-ui.html` e `http://localhost:8081/dailybalance-service/swagger-ui.html` com os serviços rodando
