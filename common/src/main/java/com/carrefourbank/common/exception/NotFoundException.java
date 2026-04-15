@@ -1,4 +1,3 @@
-// NotFoundException.java
 package com.carrefourbank.common.exception;
 
 /**

@@ -1,4 +1,3 @@
-// TransactionType.java
 package com.carrefourbank.common.domain;
 
 /**

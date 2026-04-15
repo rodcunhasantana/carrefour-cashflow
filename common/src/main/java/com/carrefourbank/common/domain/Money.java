@@ -1,6 +1,7 @@
 package com.carrefourbank.common.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Objects;
 
 /**
@@ -153,7 +154,7 @@ public class Money {
         if (divisor.compareTo(BigDecimal.ZERO) == 0) {
             throw new ArithmeticException("Division by zero");
         }
-        return new Money(this.amount.divide(divisor), this.currency);
+        return new Money(this.amount.divide(divisor, 10, RoundingMode.HALF_UP), this.currency);
     }
 
     /**
@@ -202,7 +203,7 @@ public class Money {
 
     @Override
     public int hashCode() {
-        return Objects.hash(amount, currency);
+        return Objects.hash(amount.stripTrailingZeros(), currency);
     }
 
     @Override

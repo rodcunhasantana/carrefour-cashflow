@@ -1,4 +1,3 @@
-// ValidationException.java
 package com.carrefourbank.common.exception;
 
 /**

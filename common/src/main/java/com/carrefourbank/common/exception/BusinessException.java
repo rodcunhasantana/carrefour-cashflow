@@ -1,4 +1,3 @@
-// BusinessException.java
 package com.carrefourbank.common.exception;
 
 /**
