@@ -8,7 +8,7 @@ logging:
 # Configurações de banco de dados para desenvolvimento
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/dailybalance_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/dailybalance_db
     username: ${DB_USER:dailybalance_user}
     password: ${DB_PASSWORD:dailybalance_password}
 

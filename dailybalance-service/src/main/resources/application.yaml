@@ -10,7 +10,7 @@ spring:
     active: dev  # Define um perfil ativo
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/dailybalance_db
+    url: jdbc:postgresql://localhost:5433/dailybalance_db
     username: dailybalance_user
     password: dailybalance_password
     driver-class-name: org.postgresql.Driver
