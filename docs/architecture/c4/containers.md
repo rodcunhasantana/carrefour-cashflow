@@ -44,8 +44,10 @@ C4Container
     Rel(transactionService, transactionDb, "Lê e escreve", "JDBC")
     Rel(dailyBalanceService, dailyBalanceDb, "Lê e escreve", "JDBC")
     
-    Rel(transactionService, messageBus, "Publica eventos de transação", "Async/JSON")
+    Rel(transactionService, messageBus, "Publica eventos de transação (transaction-events)", "Async/JSON")
     Rel(messageBus, dailyBalanceService, "Entrega eventos de transação", "Async/JSON")
+    Rel(dailyBalanceService, messageBus, "Publica eventos de período fechado (period-events)", "Async/JSON")
+    Rel(messageBus, transactionService, "Entrega eventos de período fechado", "Async/JSON")
     
     Rel(transactionService, secretManager, "Obtém credenciais", "HTTPS")
     Rel(dailyBalanceService, secretManager, "Obtém credenciais", "HTTPS")
@@ -115,6 +117,7 @@ C4Container
   - Registros de transações financeiras
   - Histórico de estornos
   - Metadados de auditoria
+  - Tabela `closed_periods` — datas com período fechado (populada via evento `period-closed`)
 
 **Daily Balance Database**
 - **Tecnologia**: Cloud SQL (PostgreSQL)
@@ -123,6 +126,7 @@ C4Container
   - Registros de saldos diários
   - Histórico de fechamentos de período
   - Registros de reabertura de períodos
+  - Tabela `processed_events` — controle de idempotência (eventIds já processados)
 
 ### Serviços de Infraestrutura
 
@@ -179,9 +183,10 @@ Contador → Web App → API Gateway → Daily Balance Service → Cloud SQL
 
 **Fechamento de Período:**
 ```
-Contador → Web App → API Gateway → Daily Balance Service → Cloud SQL
-                                   Daily Balance Service → ERP Corporativo
-                                   Daily Balance Service → Cloud Storage (relatórios)
+Contador → Web App → API Gateway → Daily Balance Service → Cloud SQL (status = CLOSED)
+                                   Daily Balance Service → Pub/Sub (period-events)
+                                   Pub/Sub → Transaction Service → Cloud SQL (closed_periods)
+                                   # A partir daqui: novos lançamentos para a data retornam HTTP 422
 ```
 
 **Aprovação de Transação de Alto Valor:**

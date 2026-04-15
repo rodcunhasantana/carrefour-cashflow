@@ -31,6 +31,32 @@ Onde:
 
 ## Eventos Específicos
 
+### period-closed
+
+Publicado pelo Daily Balance Service quando um período é fechado via `POST /api/dailybalances/{date}/close`.
+
+**Tópico**: `period-events`
+**Subscription consumida por**: `transaction-period-subscription` (Transaction Service)
+
+**Payload**:
+
+```json
+{
+  "eventId": "9f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+  "eventType": "period-closed",
+  "timestamp": "2026-04-14T23:59:00.000Z",
+  "producer": "dailybalance-service",
+  "data": {
+    "balanceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "date": "2026-04-14"
+  }
+}
+```
+
+**Efeito**: O Transaction Service persiste a data fechada na tabela `closed_periods`. A partir desse momento, qualquer tentativa de criar um lançamento para essa data retorna HTTP 422 (`PeriodClosedException`).
+
+---
+
 ### transaction-created
 
 Publicado quando uma nova transação é criada no Transaction Service.
@@ -102,19 +128,31 @@ Publicado quando uma transação é estornada no Transaction Service.
 
 ### Idempotência
 
-Para garantir idempotência no processamento de eventos:
+Implementada no Daily Balance Service via tabela `processed_events`:
 
-- O Daily Balance Service mantém um registro de eventos processados com base no `eventId`
-- Eventos duplicados são detectados e ignorados
-- Operações de atualização de saldo são projetadas para serem idempotentes
+- Antes de processar qualquer evento, o consumer tenta inserir o `eventId` na tabela `processed_events (event_id PK, processed_at)`
+- Se a inserção falhar por chave duplicada (`DuplicateKeyException`), o evento já foi processado → mensagem é descartada silenciosamente e confirmada (`ack`)
+- Se a inserção suceder → o saldo é atualizado e a mensagem é confirmada
+- Em caso de erro no processamento → `ack` não é enviado, o Pub/Sub reentrega a mensagem
+
+Essa abordagem garante que o mesmo `eventId` nunca acumule saldo duas vezes, mesmo sob reentrega de mensagens (at-least-once delivery).
+
+## Tópicos e Subscriptions
+
+| Tópico | Subscription | Producer | Consumer |
+|---|---|---|---|
+| `transaction-events` | `dailybalance-transaction-subscription` | transaction-service | dailybalance-service |
+| `period-events` | `transaction-period-subscription` | dailybalance-service | transaction-service |
+
+Ambos os tópicos e subscriptions são criados automaticamente pelo container `pubsub-setup` no `docker-compose.yml` ao subir o ambiente local.
 
 ## Ordenação de Eventos
 
 A ordenação exata dos eventos não é garantida pelo Pub/Sub, portanto:
 
-- O Daily Balance Service processa eventos da mesma data em lote
-- O recálculo de saldo é feito após o processamento de todos os eventos de um lote
-- Timestamps são utilizados para resolução de conflitos quando necessário
+- O Daily Balance Service acumula créditos e débitos conforme os eventos chegam
+- O `closingBalance` é recalculado a cada evento: `openingBalance + totalCredits + totalDebits`
+- Timestamps são utilizados para correlação e auditoria
 
 ## Evolução de Esquema
 

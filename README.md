@@ -11,15 +11,13 @@ Este sistema é composto por dois microserviços principais:
 
 ## Tecnologias
 
-- Java 21
-- Spring Boot 3.x
-- Google Cloud Run (hospedagem dos microserviços)
-- Google Cloud SQL — PostgreSQL (banco de dados)
-- Google Cloud Pub/Sub (mensageria assíncrona)
-- Google Cloud Storage (relatórios e exportações)
-- Google Cloud Secret Manager (credenciais)
-- Google Cloud Identity Platform (autenticação)
-- Docker (desenvolvimento local)
+- Java 21 / Spring Boot 3.2.4
+- JDBC puro com PostgreSQL (sem JPA/Hibernate)
+- Google Cloud Pub/Sub (mensageria assíncrona — emulador local via Docker)
+- Resilience4j — Circuit Breaker e Retry nos publishers de eventos
+- SpringDoc OpenAPI 2.3.0 — Swagger UI em runtime
+- Docker / Docker Compose (ambiente local completo)
+- Google Cloud Run, Cloud SQL, Secret Manager (produção)
 
 ## Estrutura do Projeto
 
@@ -67,3 +65,23 @@ cd dailybalance-service
 
 # PowerShell (Windows)
 ./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
+
+### Documentação da API (Swagger UI)
+
+Com os serviços rodando:
+
+| Serviço | Swagger UI | OpenAPI JSON |
+|---|---|---|
+| transaction-service | http://localhost:8080/transaction-service/swagger-ui.html | http://localhost:8080/transaction-service/v3/api-docs |
+| dailybalance-service | http://localhost:8081/dailybalance-service/swagger-ui.html | http://localhost:8081/dailybalance-service/v3/api-docs |
+
+### Executando os testes
+
+```bash
+# Todos os módulos
+mvn clean install
+
+# Apenas um serviço
+mvn test -pl transaction-service
+mvn test -pl dailybalance-service
+```

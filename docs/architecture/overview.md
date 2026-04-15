@@ -70,14 +70,17 @@ Esta abordagem permite:
 
 ### Event-Driven Architecture
 
-Os serviços se comunicam através de eventos:
-- **Transaction Service** publica eventos de transação
-- **Daily Balance Service** consome eventos para atualizar saldos
+Os serviços se comunicam através de eventos em dois sentidos:
+
+| Direção | Tópico | Producer | Consumer | Efeito |
+|---|---|---|---|---|
+| Transação → Saldo | `transaction-events` | transaction-service | dailybalance-service | Atualiza saldo do dia |
+| Fechamento → Bloqueio | `period-events` | dailybalance-service | transaction-service | Bloqueia novos lançamentos na data |
 
 Isso permite:
-- Desacoplamento entre serviços
-- Melhor escalabilidade
-- Processamento assíncrono
+- Desacoplamento total entre serviços (sem chamadas síncronas)
+- Resiliência: falha em um serviço não interrompe o outro
+- Processamento assíncrono com idempotência garantida
 
 ### Padrões Complementares
 
@@ -91,8 +94,8 @@ Isso permite:
 
 - **Linguagem**: Java 21
 - **Framework**: Spring Boot 3.2.4
-- **Persistência**: JDBC direto com PostgreSQL
-- **API**: REST com OpenAPI
+- **Persistência**: JDBC direto com PostgreSQL (sem JPA/Hibernate)
+- **API**: REST com OpenAPI — Swagger UI disponível em runtime (`/swagger-ui.html` em cada serviço)
 - **Contêinerização**: Docker
 
 ### Infraestrutura
@@ -146,6 +149,6 @@ Isso permite:
 
 - [Diagrama de Contêineres (C4)](c4/containers.md)
 - [Diagrama de Componentes (C4)](c4/components.md)
-- [API do Transaction Service](../api/transaction-service-api.md)
-- [API do Daily Balance Service](../api/dailybalance-service-api.md)
+- [Eventos de Domínio](../domain/domain-events.md)
 - [Registros de Decisões Arquiteturais (ADRs)](decisions/)
+- **API (runtime)**: Swagger UI disponível em `http://localhost:8080/transaction-service/swagger-ui.html` e `http://localhost:8081/dailybalance-service/swagger-ui.html` com os serviços rodando
