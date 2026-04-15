@@ -71,7 +71,8 @@ class TransactionTest {
         Transaction original = Transaction.create(TransactionType.CREDIT, amount, TODAY, "Original");
         Transaction reversal = Transaction.createReversal(original, "Wrong entry");
 
-        assertEquals(TransactionType.CREDIT, reversal.type());
+        // Estorno de CREDIT deve ser DEBIT com valor negativo
+        assertEquals(TransactionType.DEBIT, reversal.type());
         assertTrue(reversal.amount().isNegative());
         assertEquals(new BigDecimal("-200.00"), reversal.amount().amount());
         assertTrue(reversal.isReversal());

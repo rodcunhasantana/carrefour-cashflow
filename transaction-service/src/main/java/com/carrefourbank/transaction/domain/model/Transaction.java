@@ -77,10 +77,15 @@ public class Transaction {
             throw new ValidationException("Reversal reason is required");
         }
         String reversalDescription = "Reversal: " + original.description + " - Reason: " + reason;
+        // O estorno inverte o tipo e nega o valor:
+        // CREDIT +500 → DEBIT -500  |  DEBIT -200 → CREDIT +200
+        TransactionType reversalType = original.type == TransactionType.CREDIT
+                ? TransactionType.DEBIT
+                : TransactionType.CREDIT;
         Money reversedAmount = original.amount.negate();
         return new Transaction(
                 UUID.randomUUID(),
-                original.type,
+                reversalType,
                 reversedAmount,
                 original.date,
                 reversalDescription,

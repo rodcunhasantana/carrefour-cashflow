@@ -19,11 +19,12 @@ spring:
       mode: embedded
       schema-locations: classpath:schema-test.sql
 
-  # Desativar JPA completamente
+  # Desativar JPA e auto-configuração GCP desnecessária em testes
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - com.google.cloud.spring.autoconfigure.core.GcpContextAutoConfiguration
 
   # Desativar Pub/Sub para testes unitários
   cloud:
