@@ -29,9 +29,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import org.junit.jupiter.api.Tag;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("unit")
+@Tag("web")
+@Tag("FR-08")
+@Tag("FR-10")
+@Tag("FR-11")
 @ExtendWith(MockitoExtension.class)
 class DailyBalanceControllerTest {
 

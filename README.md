@@ -215,4 +215,7 @@ mvn test -pl dailybalance-service
 | [ADR-006](docs/architecture/decisions/006-security.md) | Autenticação por API Key |
 | [Visão Geral da Arquitetura](docs/architecture/overview.md) | Padrões, stack e decisões |
 | [C4 — Contêineres](docs/architecture/c4/containers.md) | Diagrama de contêineres |
+| [C4 — Componentes](docs/architecture/c4/components.md) | Componentes internos de cada serviço |
 | [Eventos de Domínio](docs/domain/domain-events.md) | Contratos de eventos Pub/Sub |
+| [Matriz de Rastreabilidade](docs/traceability.md) | FR/NFR → ADR → implementação → testes |
+| [Estimativa de Custo GCP](docs/architecture/cost-estimation.md) | Custos por componente em produção |

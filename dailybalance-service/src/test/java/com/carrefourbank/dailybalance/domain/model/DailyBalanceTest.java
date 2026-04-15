@@ -5,6 +5,7 @@ import com.carrefourbank.common.domain.Money;
 import com.carrefourbank.common.exception.ValidationException;
 import com.carrefourbank.dailybalance.domain.exception.BalanceAlreadyClosedException;
 import com.carrefourbank.dailybalance.domain.exception.BalanceAlreadyOpenException;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -12,6 +13,14 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("unit")
+@Tag("domain")
+@Tag("FR-06")
+@Tag("FR-07")
+@Tag("FR-08")
+@Tag("FR-09")
+@Tag("FR-10")
+@Tag("NFR-07")
 class DailyBalanceTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 4, 14);

@@ -1,5 +1,6 @@
 package com.carrefourbank.transaction.application.service;
 
+
 import com.carrefourbank.common.domain.Currency;
 import com.carrefourbank.common.domain.Money;
 import com.carrefourbank.common.domain.TransactionType;
@@ -30,9 +31,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@Tag("unit")
+@Tag("service")
+@Tag("FR-01")
+@Tag("FR-02")
+@Tag("FR-03")
+@Tag("FR-04")
+@Tag("FR-05")
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
 

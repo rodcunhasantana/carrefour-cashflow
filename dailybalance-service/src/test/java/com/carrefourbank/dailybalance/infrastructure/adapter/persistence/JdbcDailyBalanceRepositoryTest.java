@@ -5,6 +5,7 @@ import com.carrefourbank.common.domain.Money;
 import com.carrefourbank.dailybalance.domain.model.BalanceStatus;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
 import com.carrefourbank.dailybalance.domain.port.DailyBalanceRepository;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +21,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("integration")
+@Tag("persistence")
+@Tag("FR-06")
+@Tag("FR-10")
+@Tag("FR-12")
+@Tag("NFR-06")
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

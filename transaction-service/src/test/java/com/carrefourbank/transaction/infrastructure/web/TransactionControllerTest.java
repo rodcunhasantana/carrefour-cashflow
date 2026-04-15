@@ -33,9 +33,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import org.junit.jupiter.api.Tag;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("unit")
+@Tag("web")
+@Tag("FR-01")
+@Tag("FR-02")
+@Tag("FR-03")
+@Tag("FR-04")
 @ExtendWith(MockitoExtension.class)
 class TransactionControllerTest {
 

@@ -4,6 +4,7 @@ import com.carrefourbank.common.domain.Money;
 import com.carrefourbank.common.domain.TransactionType;
 import com.carrefourbank.transaction.domain.model.Transaction;
 import com.carrefourbank.transaction.domain.model.TransactionStatus;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("integration")
+@Tag("persistence")
+@Tag("FR-01")
+@Tag("FR-03")
+@Tag("FR-04")
+@Tag("NFR-06")
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

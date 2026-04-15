@@ -4,6 +4,7 @@ import com.carrefourbank.common.domain.Currency;
 import com.carrefourbank.common.domain.Money;
 import com.carrefourbank.common.domain.TransactionType;
 import com.carrefourbank.common.exception.ValidationException;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -11,6 +12,13 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("unit")
+@Tag("domain")
+@Tag("FR-01")
+@Tag("FR-02")
+@Tag("FR-03")
+@Tag("FR-04")
+@Tag("NFR-07")
 class TransactionTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 4, 14);

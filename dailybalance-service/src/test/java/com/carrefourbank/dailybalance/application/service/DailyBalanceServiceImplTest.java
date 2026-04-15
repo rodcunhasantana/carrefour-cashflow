@@ -32,9 +32,19 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@Tag("unit")
+@Tag("service")
+@Tag("FR-06")
+@Tag("FR-07")
+@Tag("FR-08")
+@Tag("FR-09")
+@Tag("FR-10")
+@Tag("FR-11")
+@Tag("FR-12")
 @ExtendWith(MockitoExtension.class)
 class DailyBalanceServiceImplTest {
 
