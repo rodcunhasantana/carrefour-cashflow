@@ -405,12 +405,14 @@ O Transaction Service publica eventos para outros serviços através do Google C
 
 ```json
 {
-  "eventType": "TRANSACTION_CREATED",
-  "transactionId": "123e4567-e89b-12d3-a456-426614174000",
+  "eventId": "5f9c5b9b-1b1a-4b1a-9b1a-1b1a9b1a1b1a",
+  "eventType": "transaction-created",
   "timestamp": "2026-04-10T14:30:45.123Z",
+  "producer": "transaction-service",
   "data": {
+    "transactionId": "123e4567-e89b-12d3-a456-426614174000",
     "type": "CREDIT",
-    "amount": "100.00",
+    "amount": 100.00,
     "currency": "BRL",
     "date": "2026-04-10",
     "description": "Recebimento de taxa de serviço"
@@ -422,16 +424,18 @@ O Transaction Service publica eventos para outros serviços através do Google C
 
 ```json
 {
-  "eventType": "TRANSACTION_REVERSED",
-  "transactionId": "323e4567-e89b-12d3-a456-426614174002",
-  "originalTransactionId": "123e4567-e89b-12d3-a456-426614174000",
+  "eventId": "6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d",
+  "eventType": "transaction-reversed",
   "timestamp": "2026-04-11T09:45:22.789Z",
+  "producer": "transaction-service",
   "data": {
-    "type": "CREDIT",
-    "amount": "-100.00",
-    "currency": "BRL",
+    "originalTransactionId": "123e4567-e89b-12d3-a456-426614174000",
+    "reversalTransactionId": "323e4567-e89b-12d3-a456-426614174002",
+    "reason": "Lançamento incorreto",
     "date": "2026-04-11",
-    "reason": "Lançamento incorreto"
+    "amount": 100.00,
+    "currency": "BRL",
+    "type": "CREDIT"
   }
 }
 ```

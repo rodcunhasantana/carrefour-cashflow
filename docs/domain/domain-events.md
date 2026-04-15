@@ -81,7 +81,10 @@ Publicado quando uma transação é estornada no Transaction Service.
     "originalTransactionId": "0b45e7db-7fb1-4fb0-a4f1-8120af6bb9e7",
     "reversalTransactionId": "c2d3e4f5-6g78-9h10-i11j-12k13l14m15n",
     "reason": "Lançamento incorreto",
-    "date": "2026-04-02"
+    "date": "2026-04-02",
+    "amount": 150.75,
+    "currency": "BRL",
+    "type": "CREDIT"
   }
 }
 ```

@@ -35,14 +35,11 @@ Este módulo é intencionalmente **livre de frameworks**. As classes são POJOs 
 
 ## Dependências
 
-| Dependência             | Uso                                           |
-|-------------------------|-----------------------------------------------|
-| `spring-context`        | Suporte a ciclo de vida Spring (se necessário)|
-| `jackson-databind`      | Serialização/deserialização JSON              |
-| `jakarta.validation-api`| Contrato de validação (Bean Validation)       |
-| `junit-jupiter`         | Testes unitários (escopo `test`)              |
+| Dependência   | Uso                              |
+|---------------|----------------------------------|
+| `junit-jupiter` | Testes unitários (escopo `test`) |
 
-Todas as versões são gerenciadas pelo POM pai (`carrefour-cashflow`).
+Este módulo é intencionalmente **livre de dependências de framework** em tempo de compilação. Todas as versões são gerenciadas pelo POM pai (`carrefour-cashflow`).
 
 ---
 
@@ -242,15 +239,20 @@ public class TransactionServiceImpl {
 ```
 common/
 ├── src/
-│   └── main/
+│   ├── main/
+│   │   └── java/com/carrefourbank/common/
+│   │       ├── domain/
+│   │       │   ├── Currency.java          # Enum de moedas suportadas
+│   │       │   ├── Money.java             # Value Object monetário imutável
+│   │       │   └── TransactionType.java   # Enum de tipos de transação
+│   │       └── exception/
+│   │           ├── BusinessException.java # Base abstrata para exceções de negócio
+│   │           ├── NotFoundException.java # Recurso não encontrado
+│   │           └── ValidationException.java # Violação de regra de negócio
+│   └── test/
 │       └── java/com/carrefourbank/common/
-│           ├── domain/
-│           │   ├── Currency.java          # Enum de moedas suportadas
-│           │   ├── Money.java             # Value Object monetário imutável
-│           │   └── TransactionType.java   # Enum de tipos de transação
-│           └── exception/
-│               ├── BusinessException.java # Base abstrata para exceções de negócio
-│               ├── NotFoundException.java # Recurso não encontrado
-│               └── ValidationException.java # Violação de regra de negócio
+│           └── domain/
+│               ├── CurrencyTest.java      # Testes de Currency
+│               └── MoneyTest.java         # Testes de Money (aritmética, equals/hashCode)
 └── pom.xml
 ```

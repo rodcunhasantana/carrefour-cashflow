@@ -33,7 +33,7 @@ Microserviço responsável pelo gerenciamento do ciclo de vida das transações 
 - Criar e consultar transações financeiras (créditos e débitos)
 - Validar regras de negócio (valores, tipos, períodos contábeis)
 - Processar estornos de transações
-- Publicar eventos `TRANSACTION_CREATED` e `TRANSACTION_REVERSED` no Cloud Pub/Sub
+- Publicar eventos `transaction-created` e `transaction-reversed` no Cloud Pub/Sub
 - Gerar e armazenar relatórios no Cloud Storage
 
 ---
@@ -170,10 +170,10 @@ Em produção, as credenciais são recuperadas do **Secret Manager**. O serviço
 
 O serviço publica eventos no **Google Cloud Pub/Sub**.
 
-| Tópico               | Evento                   | Quando                            |
-|----------------------|--------------------------|-----------------------------------|
-| `transaction-events` | `TRANSACTION_CREATED`    | Após criação bem-sucedida         |
-| `transaction-events` | `TRANSACTION_REVERSED`   | Após estorno bem-sucedido         |
+| Tópico               | Evento                    | Quando                            |
+|----------------------|---------------------------|-----------------------------------|
+| `transaction-events` | `transaction-created`     | Após criação bem-sucedida         |
+| `transaction-events` | `transaction-reversed`    | Após estorno bem-sucedido         |
 
 ### Emulador local
 
@@ -252,9 +252,39 @@ transaction-service/
 │   ├── main/
 │   │   ├── java/com/carrefourbank/transaction/
 │   │   │   ├── TransactionServiceApplication.java
+│   │   │   ├── domain/
+│   │   │   │   ├── model/
+│   │   │   │   │   ├── Transaction.java       # Entidade imutável
+│   │   │   │   │   └── TransactionStatus.java # Enum: PENDING, COMPLETED, FAILED
+│   │   │   │   ├── exception/
+│   │   │   │   │   ├── TransactionAlreadyReversedException.java
+│   │   │   │   │   └── PeriodClosedException.java
+│   │   │   │   └── port/
+│   │   │   │       └── TransactionRepository.java  # Interface de repositório
+│   │   │   ├── application/
+│   │   │   │   ├── dto/                       # CreateTransactionRequest, TransactionDTO, etc.
+│   │   │   │   ├── mapper/
+│   │   │   │   │   └── TransactionMapper.java
+│   │   │   │   ├── port/
+│   │   │   │   │   └── TransactionService.java    # Interface de serviço
+│   │   │   │   └── service/
+│   │   │   │       └── TransactionServiceImpl.java
 │   │   │   └── infrastructure/
-│   │   │       └── config/
-│   │   │           └── BannerConfig.java
+│   │   │       ├── adapter/
+│   │   │       │   ├── persistence/
+│   │   │       │   │   └── JdbcTransactionRepository.java
+│   │   │       │   └── pubsub/
+│   │   │       │       ├── PubSubTransactionEventPublisher.java
+│   │   │       │       ├── NoOpTransactionEventPublisher.java
+│   │   │       │       └── event/              # TransactionEventEnvelope, *EventData records
+│   │   │       ├── config/
+│   │   │       │   └── BannerConfig.java
+│   │   │       ├── logging/
+│   │   │       │   └── TransactionLogger.java
+│   │   │       └── web/
+│   │   │           ├── TransactionController.java
+│   │   │           ├── GlobalExceptionHandler.java
+│   │   │           └── ErrorResponse.java
 │   │   └── resources/
 │   │       ├── application.yaml          # Configuração base
 │   │       ├── application-dev.yml       # Overrides para desenvolvimento local
@@ -263,11 +293,19 @@ transaction-service/
 │   │       └── banner.txt                # Banner de inicialização
 │   └── test/
 │       ├── java/com/carrefourbank/transaction/
-│       │   └── TransactionServiceApplicationTests.java
+│       │   ├── domain/model/
+│       │   │   └── TransactionTest.java
+│       │   ├── application/service/
+│       │   │   └── TransactionServiceImplTest.java
+│       │   ├── infrastructure/adapter/persistence/
+│       │   │   └── JdbcTransactionRepositoryTest.java
+│       │   └── infrastructure/web/
+│       │       └── TransactionControllerTest.java
 │       └── resources/
 │           ├── application-test.yml      # Configuração de testes (H2)
 │           ├── schema-test.sql           # DDL para testes
 │           └── logback-test.xml
+├── Dockerfile
 ├── pom.xml
 └── mvnw / mvnw.cmd
 ```

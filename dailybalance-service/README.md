@@ -30,7 +30,7 @@ Microserviço responsável pela consolidação e gerenciamento dos saldos diári
 
 ### Responsabilidades
 
-- Consumir eventos de transações (`TRANSACTION_CREATED`, `TRANSACTION_REVERSED`) do Cloud Pub/Sub
+- Consumir eventos de transações (`transaction-created`, `transaction-reversed`) do Cloud Pub/Sub
 - Calcular e atualizar saldos diários em tempo real
 - Gerenciar fechamento e reabertura de períodos contábeis
 - Exportar saldos consolidados para o ERP corporativo
@@ -125,7 +125,6 @@ Documentação completa: [`docs/api/dailybalance-service-api.md`](../docs/api/da
 | POST   | `/api/dailybalances/{date}/reopen`         | Reabrir período                 |
 | POST   | `/api/dailybalances/{date}/recalculate`    | Recalcular saldo                |
 | POST   | `/api/dailybalances/export`                | Exportar saldos para ERP        |
-| GET    | `/api/dailybalances/{date}/history`        | Histórico de alterações         |
 
 ### Exemplo rápido
 
@@ -175,16 +174,16 @@ Em produção, as credenciais são recuperadas do **Secret Manager**. O serviço
 
 O serviço **consome** eventos do tópico `transaction-events` no **Google Cloud Pub/Sub**.
 
-| Assinatura                               | Tópico               | Eventos consumidos                               |
-|------------------------------------------|----------------------|--------------------------------------------------|
-| `dailybalance-transaction-subscription`  | `transaction-events` | `TRANSACTION_CREATED`, `TRANSACTION_REVERSED`    |
+| Assinatura                               | Tópico               | Eventos consumidos                              |
+|------------------------------------------|----------------------|-------------------------------------------------|
+| `dailybalance-transaction-subscription`  | `transaction-events` | `transaction-created`, `transaction-reversed`   |
 
 ### Comportamento ao receber eventos
 
-| Evento                  | Ação                                              |
-|-------------------------|---------------------------------------------------|
-| `TRANSACTION_CREATED`   | Cria ou atualiza saldo do dia; recalcula closing balance |
-| `TRANSACTION_REVERSED`  | Aplica estorno no saldo; recalcula closing balance |
+| Evento                   | Ação                                                      |
+|--------------------------|-----------------------------------------------------------|
+| `transaction-created`    | Cria ou atualiza saldo do dia; recalcula closing balance  |
+| `transaction-reversed`   | Aplica estorno no saldo; recalcula closing balance        |
 
 ### Emulador local
 
@@ -266,9 +265,38 @@ dailybalance-service/
 │   ├── main/
 │   │   ├── java/com/carrefourbank/dailybalance/
 │   │   │   ├── DailybalanceServiceApplication.java
+│   │   │   ├── domain/
+│   │   │   │   ├── model/
+│   │   │   │   │   ├── DailyBalance.java      # Entidade imutável
+│   │   │   │   │   └── BalanceStatus.java     # Enum: OPEN, CLOSED
+│   │   │   │   ├── exception/
+│   │   │   │   │   ├── BalanceAlreadyClosedException.java
+│   │   │   │   │   └── BalanceAlreadyOpenException.java
+│   │   │   │   └── port/
+│   │   │   │       └── DailyBalanceRepository.java  # Interface de repositório
+│   │   │   ├── application/
+│   │   │   │   ├── dto/                       # DailyBalanceDTO, DailyBalancePageResponse, etc.
+│   │   │   │   ├── mapper/
+│   │   │   │   │   └── DailyBalanceMapper.java
+│   │   │   │   ├── port/
+│   │   │   │   │   └── DailyBalanceService.java    # Interface de serviço
+│   │   │   │   └── service/
+│   │   │   │       └── DailyBalanceServiceImpl.java
 │   │   │   └── infrastructure/
-│   │   │       └── config/
-│   │   │           └── BannerConfig.java
+│   │   │       ├── adapter/
+│   │   │       │   ├── persistence/
+│   │   │       │   │   └── JdbcDailyBalanceRepository.java
+│   │   │       │   └── pubsub/
+│   │   │       │       ├── TransactionEventConsumer.java
+│   │   │       │       └── event/              # TransactionEventEnvelope, *EventData records
+│   │   │       ├── config/
+│   │   │       │   └── BannerConfig.java
+│   │   │       ├── logging/
+│   │   │       │   └── DailyBalanceLogger.java
+│   │   │       └── web/
+│   │   │           ├── DailyBalanceController.java
+│   │   │           ├── GlobalExceptionHandler.java
+│   │   │           └── ErrorResponse.java
 │   │   └── resources/
 │   │       ├── application.yaml          # Configuração base
 │   │       ├── application-dev.yml       # Overrides para desenvolvimento local
@@ -277,11 +305,19 @@ dailybalance-service/
 │   │       └── banner.txt                # Banner de inicialização
 │   └── test/
 │       ├── java/com/carrefourbank/dailybalance/
-│       │   └── DailybalanceServiceApplicationTests.java
+│       │   ├── domain/model/
+│       │   │   └── DailyBalanceTest.java
+│       │   ├── application/service/
+│       │   │   └── DailyBalanceServiceImplTest.java
+│       │   ├── infrastructure/adapter/persistence/
+│       │   │   └── JdbcDailyBalanceRepositoryTest.java
+│       │   └── infrastructure/web/
+│       │       └── DailyBalanceControllerTest.java
 │       └── resources/
 │           ├── application-test.yml      # Configuração de testes (H2)
 │           ├── schema-test.sql           # DDL para testes
 │           └── logback-test.xml
+├── Dockerfile
 ├── pom.xml
 └── mvnw / mvnw.cmd
 ```
