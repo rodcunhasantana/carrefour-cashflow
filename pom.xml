@@ -25,6 +25,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.2.4</spring-boot.version>
         <resilience4j.version>2.1.0</resilience4j.version>
+        <spring-cloud-gcp.version>5.1.2</spring-cloud-gcp.version>
     </properties>
 
     <!-- Gerencia versões de dependências sem adicioná-las ao projeto -->
@@ -51,6 +52,13 @@
                 <groupId>io.github.resilience4j</groupId>
                 <artifactId>resilience4j-spring-boot3</artifactId>
                 <version>${resilience4j.version}</version>
+            </dependency>
+
+            <!-- Google Cloud Spring Pub/Sub (compatível com Spring Boot 3.x) -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
+                <version>${spring-cloud-gcp.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

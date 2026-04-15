@@ -52,8 +52,18 @@ docker-compose -f infrastructure/docker/docker-compose.yml up -d
 
 # Compilar e executar os serviços (perfil dev)
 cd transaction-service
+
+# Bash / Linux / macOS
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+
+# PowerShell (Windows) — aspas obrigatórias nos argumentos -D
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
 
 # Em outro terminal
 cd dailybalance-service
+
+# Bash / Linux / macOS
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+
+# PowerShell (Windows)
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"

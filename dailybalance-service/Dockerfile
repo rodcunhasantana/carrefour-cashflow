@@ -4,6 +4,7 @@ WORKDIR /build
 
 COPY pom.xml ./
 COPY common/pom.xml common/
+COPY transaction-service/pom.xml transaction-service/
 COPY dailybalance-service/pom.xml dailybalance-service/
 RUN mvn dependency:go-offline -pl common,dailybalance-service -am -q
 

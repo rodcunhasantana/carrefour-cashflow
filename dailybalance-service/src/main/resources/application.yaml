@@ -33,13 +33,9 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
 
-  # Pub/Sub Configuration (Local emulator)
   cloud:
     gcp:
-      pubsub:
-        emulator-host: localhost:8085
-        project-id: local-project
-        enabled: true
+      project-id: ${GCP_PROJECT_ID:local-project}
 
 # Configurações de observabilidade
 management:

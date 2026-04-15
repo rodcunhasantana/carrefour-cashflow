@@ -7,6 +7,7 @@ WORKDIR /build
 COPY pom.xml ./
 COPY common/pom.xml common/
 COPY transaction-service/pom.xml transaction-service/
+COPY dailybalance-service/pom.xml dailybalance-service/
 
 # Baixa dependências antes de copiar o código-fonte (cache de camadas Docker)
 RUN mvn dependency:go-offline -pl common,transaction-service -am -q

@@ -8,13 +8,6 @@
     <property name="APP_NAME" value="${spring.application.name:-dailybalance-service}" />
     <property name="PROFILE" value="${spring.profiles.active:-unknown}" />
 
-    <!-- Adicionar conveniência para o Janino (para filtros condicionais) -->
-    <if condition='isDefined("spring.application.name")'>
-        <then>
-            <property name="APP_NAME" value="${spring.application.name}" />
-        </then>
-    </if>
-
     <!-- Padrão para console com cores -->
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>

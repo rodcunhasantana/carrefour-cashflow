@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cloud.gcp.pubsub.core.PubSubTemplate;
+import com.google.cloud.spring.pubsub.core.PubSubTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 

@@ -98,11 +98,14 @@ password: transaction_password
 ## Executando o Serviço
 
 ```bash
-# A partir da raiz do módulo
+# Bash / Linux / macOS
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
-# Ou compilar e executar o JAR
-./mvnw clean package -DskipTests
+# PowerShell (Windows) — aspas obrigatórias nos argumentos -D
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
+
+# Ou compilar e executar o JAR (funciona em qualquer shell)
+./mvnw clean package "-DskipTests"
 java -jar target/transaction-service-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev
 ```
 

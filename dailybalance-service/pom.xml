@@ -47,11 +47,10 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
-        <!-- Cloud Pub/Sub -->
+        <!-- Google Cloud Spring Pub/Sub (compatível com Spring Boot 3.x) -->
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
+            <groupId>com.google.cloud</groupId>
             <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
-            <version>1.2.8.RELEASE</version>
         </dependency>
 
         <!-- Database -->

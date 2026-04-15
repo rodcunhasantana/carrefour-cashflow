@@ -53,8 +53,8 @@ services:
       retries: 10
       start_period: 15s
 
-  # ─── Criação do tópico no emulador ───────────────────────────────────────────
-  # Roda uma vez e sai após criar o tópico transaction-events
+  # ─── Criação do tópico e subscription no emulador ───────────────────────────
+  # Roda uma vez e sai após criar o tópico e a subscription necessários
   pubsub-setup:
     image: curlimages/curl:latest
     container_name: pubsub-setup
@@ -68,7 +68,11 @@ services:
       - |
         echo "Criando tópico transaction-events..."
         curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/topics/transaction-events"
-        echo "Tópico criado."
+        echo "Criando subscription dailybalance-transaction-subscription..."
+        curl -s -X PUT "http://pubsub-emulator:8085/v1/projects/local-project/subscriptions/dailybalance-transaction-subscription" \
+          -H "Content-Type: application/json" \
+          -d '{"topic":"projects/local-project/topics/transaction-events"}'
+        echo "Setup concluído."
 
   # ─── Transaction Service ─────────────────────────────────────────────────────
   transaction-service:
@@ -114,11 +118,12 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://dailybalance-db:5432/dailybalance_db
-      SPRING_DATASOURCE_USERNAME: dailybalance_user
-      SPRING_DATASOURCE_PASSWORD: dailybalance_password
+      DB_HOST: dailybalance-db
+      DB_PORT: 5432
+      DB_USER: dailybalance_user
+      DB_PASSWORD: dailybalance_password
       GCP_PROJECT_ID: local-project
-      SPRING_CLOUD_GCP_PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/dailybalance-service/actuator/health || exit 1"]
       interval: 15s
