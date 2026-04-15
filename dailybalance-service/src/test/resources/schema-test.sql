@@ -22,3 +22,17 @@ CREATE TABLE processed_events (
     event_id    VARCHAR(36) PRIMARY KEY,
     processed_at TIMESTAMP NOT NULL
 );
+
+DROP TABLE IF EXISTS daily_balance_transactions;
+CREATE TABLE daily_balance_transactions (
+    id               VARCHAR(36) PRIMARY KEY,
+    balance_id       VARCHAR(36) NOT NULL,
+    transaction_id   VARCHAR(36) NOT NULL,
+    event_id         VARCHAR(36) NOT NULL,
+    transaction_type VARCHAR(10) NOT NULL,
+    amount           DECIMAL(19,4) NOT NULL,
+    currency         VARCHAR(3) NOT NULL,
+    applied_at       TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_dbt_balance_id ON daily_balance_transactions (balance_id);

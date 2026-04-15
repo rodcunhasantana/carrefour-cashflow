@@ -162,6 +162,27 @@ Para permitir a evolução dos esquemas de eventos:
 - Campos existentes nunca têm seu significado alterado
 - Consumidores são projetados para ignorar campos desconhecidos
 
+## Auditoria: rastreabilidade transação → saldo
+
+Cada evento processado com sucesso gera um registro imutável na tabela `daily_balance_transactions` do `dailybalance-service`:
+
+| Campo | Descrição |
+|---|---|
+| `id` | UUID do registro de auditoria |
+| `balance_id` | UUID do saldo diário ao qual o lançamento foi aplicado |
+| `transaction_id` | ID da transação original no `transaction-service` |
+| `event_id` | `eventId` do envelope Pub/Sub (garante unicidade) |
+| `transaction_type` | `CREDIT` ou `DEBIT` |
+| `amount` | Valor aplicado |
+| `currency` | Moeda (BRL) |
+| `applied_at` | Timestamp de aplicação |
+
+**Endpoint de consulta:**
+```
+GET /api/dailybalances/{date}/transactions
+```
+Retorna todos os lançamentos que compõem o saldo de uma data, ordenados cronologicamente por `applied_at`.
+
 ## Monitoramento
 
 O fluxo de eventos é monitorado através de:

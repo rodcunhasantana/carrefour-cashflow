@@ -3,6 +3,7 @@ package com.carrefourbank.dailybalance.infrastructure.web;
 import com.carrefourbank.dailybalance.application.dto.CloseBalanceRequest;
 import com.carrefourbank.dailybalance.application.dto.DailyBalanceDTO;
 import com.carrefourbank.dailybalance.application.dto.DailyBalancePageResponse;
+import com.carrefourbank.dailybalance.application.dto.DailyBalanceTransactionDTO;
 import com.carrefourbank.dailybalance.application.dto.ExportBalanceRequest;
 import com.carrefourbank.dailybalance.application.dto.ExportStatusResponse;
 import com.carrefourbank.dailybalance.application.dto.RecalculateResponse;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Tag(name = "Daily Balances", description = "Saldos diários consolidados — consulta, fechamento e recálculo de períodos")
 @RestController
@@ -104,5 +106,16 @@ public class DailyBalanceController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ExportStatusResponse exportToERP(@Valid @RequestBody ExportBalanceRequest request) {
         return service.exportToERP(request);
+    }
+
+    @Operation(summary = "Auditoria: lançamentos do saldo", description = "Lista todos os lançamentos que compõem o saldo de uma data, em ordem cronológica de aplicação.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de lançamentos do saldo"),
+        @ApiResponse(responseCode = "404", description = "Saldo não encontrado para a data")
+    })
+    @GetMapping("/{date}/transactions")
+    public List<DailyBalanceTransactionDTO> findTransactionsByDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return service.findTransactionsByDate(date);
     }
 }

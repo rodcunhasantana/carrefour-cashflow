@@ -7,6 +7,7 @@ import com.carrefourbank.common.exception.NotFoundException;
 import com.carrefourbank.dailybalance.application.dto.CloseBalanceRequest;
 import com.carrefourbank.dailybalance.application.dto.DailyBalanceDTO;
 import com.carrefourbank.dailybalance.application.dto.DailyBalancePageResponse;
+import com.carrefourbank.dailybalance.application.dto.DailyBalanceTransactionDTO;
 import com.carrefourbank.dailybalance.application.dto.ExportBalanceRequest;
 import com.carrefourbank.dailybalance.application.dto.ExportStatusResponse;
 import com.carrefourbank.dailybalance.application.dto.RecalculateResponse;
@@ -15,8 +16,10 @@ import com.carrefourbank.dailybalance.application.mapper.DailyBalanceMapper;
 import com.carrefourbank.dailybalance.application.port.DailyBalanceService;
 import com.carrefourbank.dailybalance.domain.model.BalanceStatus;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
+import com.carrefourbank.dailybalance.domain.model.DailyBalanceTransaction;
 import com.carrefourbank.dailybalance.domain.port.BalanceEventPublisher;
 import com.carrefourbank.dailybalance.domain.port.DailyBalanceRepository;
+import com.carrefourbank.dailybalance.domain.port.DailyBalanceTransactionRepository;
 import com.carrefourbank.dailybalance.domain.port.ProcessedEventRepository;
 import com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger;
 import org.slf4j.Logger;
@@ -38,6 +41,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     private final DailyBalanceRepository repository;
     private final ProcessedEventRepository processedEventRepository;
     private final BalanceEventPublisher balanceEventPublisher;
+    private final DailyBalanceTransactionRepository auditRepository;
     private final DailyBalanceMapper mapper;
     private final DailyBalanceLogger logger;
 
@@ -45,11 +49,13 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
             DailyBalanceRepository repository,
             ProcessedEventRepository processedEventRepository,
             BalanceEventPublisher balanceEventPublisher,
+            DailyBalanceTransactionRepository auditRepository,
             DailyBalanceMapper mapper,
             DailyBalanceLogger logger) {
         this.repository = repository;
         this.processedEventRepository = processedEventRepository;
         this.balanceEventPublisher = balanceEventPublisher;
+        this.auditRepository = auditRepository;
         this.mapper = mapper;
         this.logger = logger;
     }
@@ -119,7 +125,7 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
     }
 
     @Override
-    public void applyTransaction(String eventId, LocalDate date, Money amount, TransactionType type) {
+    public void applyTransaction(String eventId, String transactionId, LocalDate date, Money amount, TransactionType type) {
         if (!processedEventRepository.markAsProcessed(eventId)) {
             log.warn("Duplicate event skipped: eventId={}", eventId);
             return;
@@ -128,7 +134,18 @@ public class DailyBalanceServiceImpl implements DailyBalanceService {
         DailyBalance updated = type == TransactionType.CREDIT
                 ? balance.withAddedCredit(amount)
                 : balance.withAddedDebit(amount);
-        repository.save(updated);
+        DailyBalance saved = repository.save(updated);
+        auditRepository.save(DailyBalanceTransaction.create(saved.id(), transactionId, eventId, type, amount));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DailyBalanceTransactionDTO> findTransactionsByDate(LocalDate date) {
+        DailyBalance balance = findBalanceByDate(date);
+        return auditRepository.findByBalanceId(balance.id())
+                .stream()
+                .map(mapper::toTransactionDTO)
+                .toList();
     }
 
     private DailyBalance findBalanceByDate(LocalDate date) {

@@ -1,7 +1,9 @@
 package com.carrefourbank.dailybalance.application.mapper;
 
 import com.carrefourbank.dailybalance.application.dto.DailyBalanceDTO;
+import com.carrefourbank.dailybalance.application.dto.DailyBalanceTransactionDTO;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
+import com.carrefourbank.dailybalance.domain.model.DailyBalanceTransaction;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -23,6 +25,17 @@ public class DailyBalanceMapper {
                 balance.closedAt(),
                 balance.createdAt(),
                 balance.updatedAt());
+    }
+
+    public DailyBalanceTransactionDTO toTransactionDTO(DailyBalanceTransaction entry) {
+        return new DailyBalanceTransactionDTO(
+                entry.id().toString(),
+                entry.transactionId(),
+                entry.eventId(),
+                entry.type().name(),
+                format(entry.amount().amount()),
+                entry.amount().currency().name(),
+                entry.appliedAt());
     }
 
     private String format(BigDecimal amount) {

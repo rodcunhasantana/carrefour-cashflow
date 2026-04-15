@@ -16,6 +16,7 @@ import com.carrefourbank.dailybalance.domain.model.BalanceStatus;
 import com.carrefourbank.dailybalance.domain.model.DailyBalance;
 import com.carrefourbank.dailybalance.domain.port.BalanceEventPublisher;
 import com.carrefourbank.dailybalance.domain.port.DailyBalanceRepository;
+import com.carrefourbank.dailybalance.domain.port.DailyBalanceTransactionRepository;
 import com.carrefourbank.dailybalance.domain.port.ProcessedEventRepository;
 import com.carrefourbank.dailybalance.infrastructure.logging.DailyBalanceLogger;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,9 @@ class DailyBalanceServiceImplTest {
 
     @Mock
     private BalanceEventPublisher balanceEventPublisher;
+
+    @Mock
+    private DailyBalanceTransactionRepository auditRepository;
 
     @Mock
     private DailyBalanceLogger logger;
@@ -159,7 +163,7 @@ class DailyBalanceServiceImplTest {
         when(repository.findMostRecentClosedBefore(DATE)).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.applyTransaction("evt-1", DATE, credit, TransactionType.CREDIT);
+        service.applyTransaction("evt-1", "tx-1", DATE, credit, TransactionType.CREDIT);
 
         verify(repository, times(2)).save(any(DailyBalance.class));
     }
@@ -172,7 +176,7 @@ class DailyBalanceServiceImplTest {
         when(repository.findByDate(DATE)).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.applyTransaction("evt-2", DATE, debit, TransactionType.DEBIT);
+        service.applyTransaction("evt-2", "tx-2", DATE, debit, TransactionType.DEBIT);
 
         verify(repository).save(argThat(b -> b.totalDebits().amount().compareTo(new BigDecimal("-200.00")) == 0));
     }
@@ -182,9 +186,37 @@ class DailyBalanceServiceImplTest {
         Money credit = Money.of(new BigDecimal("500.00"), Currency.BRL);
         when(processedEventRepository.markAsProcessed("evt-dup")).thenReturn(false);
 
-        service.applyTransaction("evt-dup", DATE, credit, TransactionType.CREDIT);
+        service.applyTransaction("evt-dup", "tx-dup", DATE, credit, TransactionType.CREDIT);
 
         verify(repository, never()).findByDate(any());
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void applyTransaction_savesAuditEntry() {
+        DailyBalance existing = DailyBalance.create(DATE, OPENING);
+        Money credit = Money.of(new BigDecimal("300.00"), Currency.BRL);
+        when(processedEventRepository.markAsProcessed("evt-audit")).thenReturn(true);
+        when(repository.findByDate(DATE)).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.applyTransaction("evt-audit", "tx-audit", DATE, credit, TransactionType.CREDIT);
+
+        verify(auditRepository).save(argThat(entry ->
+                "tx-audit".equals(entry.transactionId()) &&
+                "evt-audit".equals(entry.eventId()) &&
+                entry.type() == TransactionType.CREDIT));
+    }
+
+    @Test
+    void findTransactionsByDate_returnsAuditEntries() {
+        DailyBalance balance = DailyBalance.create(DATE, OPENING);
+        when(repository.findByDate(DATE)).thenReturn(Optional.of(balance));
+        when(auditRepository.findByBalanceId(balance.id())).thenReturn(List.of());
+
+        var result = service.findTransactionsByDate(DATE);
+
+        assertNotNull(result);
+        verify(auditRepository).findByBalanceId(balance.id());
     }
 }

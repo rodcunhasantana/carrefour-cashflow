@@ -4,6 +4,7 @@ import com.carrefourbank.common.exception.NotFoundException;
 import com.carrefourbank.dailybalance.application.dto.CloseBalanceRequest;
 import com.carrefourbank.dailybalance.application.dto.DailyBalanceDTO;
 import com.carrefourbank.dailybalance.application.dto.DailyBalancePageResponse;
+import com.carrefourbank.dailybalance.application.dto.DailyBalanceTransactionDTO;
 import com.carrefourbank.dailybalance.application.dto.RecalculateResponse;
 import com.carrefourbank.dailybalance.application.port.DailyBalanceService;
 import com.carrefourbank.dailybalance.domain.exception.BalanceAlreadyClosedException;
@@ -110,6 +111,29 @@ class DailyBalanceControllerTest {
         mockMvc.perform(post("/api/dailybalances/2026-04-14/close"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BALANCE_ALREADY_CLOSED"));
+    }
+
+    @Test
+    void findTransactionsByDate_returns200_withList() throws Exception {
+        DailyBalanceTransactionDTO entry = new DailyBalanceTransactionDTO(
+                UUID.randomUUID().toString(), "tx-1", "evt-1",
+                "CREDIT", "500.00", "BRL", LocalDateTime.now());
+        when(service.findTransactionsByDate(DATE)).thenReturn(List.of(entry));
+
+        mockMvc.perform(get("/api/dailybalances/2026-04-14/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].transactionId").value("tx-1"))
+                .andExpect(jsonPath("$[0].transactionType").value("CREDIT"))
+                .andExpect(jsonPath("$[0].amount").value("500.00"));
+    }
+
+    @Test
+    void findTransactionsByDate_returns404_whenBalanceNotFound() throws Exception {
+        when(service.findTransactionsByDate(DATE)).thenThrow(new NotFoundException("not found"));
+
+        mockMvc.perform(get("/api/dailybalances/2026-04-14/transactions"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
     }
 
     @Test
