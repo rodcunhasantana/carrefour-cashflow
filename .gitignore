@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/java,maven,gradle,intellij+all,visualstudiocode,eclipse
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,maven,gradle,intellij+all,visualstudiocode,eclipse
 
+### Claude Code ###
+.claude/
+
 ### Eclipse ###
 .metadata
 bin/
