@@ -57,7 +57,10 @@ public class PubSubTransactionEventPublisher implements TransactionEventPublishe
                 original.id().toString(),
                 reversal.id().toString(),
                 reason,
-                reversal.date());
+                reversal.date(),
+                reversal.amount().amount(),
+                reversal.amount().currency().name(),
+                reversal.type().name());
         publish("transaction-reversed", data);
     }
 

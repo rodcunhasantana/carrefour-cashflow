@@ -99,6 +99,33 @@ services:
       retries: 5
       start_period: 30s
 
+  # ─── Daily Balance Service ──────────────────────────────────────────────────
+  dailybalance-service:
+    build:
+      context: ../../
+      dockerfile: dailybalance-service/Dockerfile
+    container_name: dailybalance-service
+    depends_on:
+      dailybalance-db:
+        condition: service_healthy
+      pubsub-setup:
+        condition: service_completed_successfully
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://dailybalance-db:5432/dailybalance_db
+      SPRING_DATASOURCE_USERNAME: dailybalance_user
+      SPRING_DATASOURCE_PASSWORD: dailybalance_password
+      GCP_PROJECT_ID: local-project
+      SPRING_CLOUD_GCP_PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/dailybalance-service/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
   transaction-data:
   dailybalance-data:

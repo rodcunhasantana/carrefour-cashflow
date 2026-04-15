@@ -5,7 +5,8 @@
       "Bash(python3 /tmp/debug_patch.py)",
       "Bash(python /tmp/debug_patch.py)",
       "Bash(./mvnw test:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(git:*)"
     ]
   }
 }
